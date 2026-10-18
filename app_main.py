@@ -8,7 +8,7 @@ import base64
 
 
 USER_PASSWORD_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
-BACKGROUND_IMAGE_PATH = r"E:\firstpy\CTRLREC\gmmra1.jpg"
+BACKGROUND_IMAGE_PATH = "gmmra1.jpg"
 
 
 def hash_password(password):
