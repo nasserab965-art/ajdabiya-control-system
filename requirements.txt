@@ -4,3 +4,4 @@ openpyxl
 opencv-python-headless
 plotly
 av
+streamlit-webrtc
