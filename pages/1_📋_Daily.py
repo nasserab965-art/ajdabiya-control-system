@@ -19,7 +19,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 
-# الآن يمكنك استيراد الملف المشترك بأمان (الخط المتعرج هنا مجرد تنبيه من المحرر)
+# الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
 # إعداد الصفحة
@@ -34,7 +34,6 @@ apply_common_css()
 # ═══════════════════════════════════════════════════════════
 # إعدادات
 # ═══════════════════════════════════════════════════════════
-NETWORK_EXCEL_PATH = 'DAILY_REP.xlsx'
 LOCAL_EXCEL_PATH = 'Daily_rep.xlsx'
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
 SHEET_NAME = None
@@ -166,36 +165,23 @@ def excel_to_image(excel_path, image_path, scale=3, sheet_name=None):
         return False, f"❌ خطأ: {e}"
 
 
-def fetch_excel_from_network():
-    if not os.path.exists(NETWORK_EXCEL_PATH):
-        return False, f"❌ لا يمكن الوصول للمسار الشبكي:\n`{NETWORK_EXCEL_PATH}`"
+def convert_uploaded_excel_to_image(uploaded_file):
+    if uploaded_file is None:
+        return False, "❌ يرجى رفع ملف Excel أولاً."
     
     try:
-        if os.path.exists(LOCAL_EXCEL_PATH):
-            try:
-                os.remove(LOCAL_EXCEL_PATH)
-            except Exception:
-                pass
+        # حفظ الملف المرفوع مؤقتاً باسم الملف المحلي
+        with open(LOCAL_EXCEL_PATH, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+            
+        if not os.path.exists(LOCAL_EXCEL_PATH):
+            return False, f"❌ فشل حفظ الملف المرفوع."
         
-        shutil.copy2(NETWORK_EXCEL_PATH, LOCAL_EXCEL_PATH)
-        size_kb = os.path.getsize(LOCAL_EXCEL_PATH) / 1024
-        mtime = datetime.fromtimestamp(os.path.getmtime(NETWORK_EXCEL_PATH))
-        return True, f"✅ تم استحضار الملف من الشبكة ({size_kb:.1f} KB) - آخر تعديل: {mtime.strftime('%Y-%m-%d %H:%M')}"
-    except PermissionError:
-        return False, "❌ لا توجد صلاحيات لقراءة الملف من الشبكة"
+        # تحويل الإكسل إلى صورة
+        return excel_to_image(LOCAL_EXCEL_PATH, LOCAL_IMAGE_PATH, scale=3, sheet_name=SHEET_NAME)
+        
     except Exception as e:
-        return False, f"❌ خطأ أثناء النسخ من الشبكة: {e}"
-
-
-def convert_excel_to_image():
-    ok, msg = fetch_excel_from_network()
-    if not ok:
-        return False, msg
-    
-    if not os.path.exists(LOCAL_EXCEL_PATH):
-        return False, f"❌ {LOCAL_EXCEL_PATH} غير موجود"
-    
-    return excel_to_image(LOCAL_EXCEL_PATH, LOCAL_IMAGE_PATH, scale=3, sheet_name=SHEET_NAME)
+        return False, f"❌ خطأ أثناء معالجة الملف: {e}"
 
 
 # ═══════════════════════════════════════════════════════════
@@ -508,36 +494,25 @@ with tab1:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div style="
-        background: rgba(74, 144, 217, 0.1);
-        border-right: 4px solid #4A90D9;
-        border-radius: 8px;
-        padding: 12px 20px;
-        margin-bottom: 15px;
-        direction: rtl;
-        font-family: Arial, sans-serif;
-    ">
-        <span style="color: #4A90D9; font-size: 16px; font-weight: bold;">📡 المصدر:</span>
-        <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">
-            {NETWORK_EXCEL_PATH}
-        </code>
-    </div>
-    """, unsafe_allow_html=True)
-
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
+    
+    # أداة رفع الملف
+    uploaded_file = st.file_uploader("📂 قم برفع ملف التقرير اليومي (Daily_rep.xlsx)", type=["xlsx"])
     
     col1, col2 = st.columns([1, 1])
     with col1:
-        if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
-            with st.spinner('⏳ جاري استحضار الملف من الشبكة والتحويل...'):
-                ok, msg = convert_excel_to_image()
-                if ok:
-                    st.cache_data.clear()
-                    st.success(msg)
-                    st.rerun()
-                else:
-                    st.error(msg)
+        if st.button("🔄 توليد التقرير من الملف المرفوع", width="stretch", type="primary"):
+            if uploaded_file is not None:
+                with st.spinner('⏳ جاري معالجة الملف وتحويله إلى صورة...'):
+                    ok, msg = convert_uploaded_excel_to_image(uploaded_file)
+                    if ok:
+                        st.cache_data.clear()
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+            else:
+                st.warning("⚠️ يرجى رفع الملف أولاً قبل الضغط على الزر.")
     
     with col2:
         if os.path.exists(LOCAL_IMAGE_PATH):
@@ -559,7 +534,7 @@ with tab1:
                 width="stretch"
             )
     else:
-        st.warning("⏳ جاري تحضير التقرير... اضغط زر إعادة التوليد")
+        st.warning("⏳ لم يتم توليد تقرير بعد... يرجى رفع الملف والضغط على الزر أعلاه.")
 
     st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
