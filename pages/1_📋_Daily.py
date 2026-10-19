@@ -10,6 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import streamlit as st
 import io
 import shutil
+import base64
+import requests
 from datetime import datetime, date
 from PIL import Image, ImageDraw, ImageFont
 import cv2
@@ -34,10 +36,6 @@ apply_common_css()
 # ═══════════════════════════════════════════════════════════
 # إعدادات
 # ═══════════════════════════════════════════════════════════
-LOCAL_EXCEL_PATH = 'Daily_rep.xlsx'
-LOCAL_IMAGE_PATH = 'Daily_rep.png'
-SHEET_NAME = None
-
 MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
@@ -51,137 +49,8 @@ MAINJOB_SHEETS = [
 
 MIN_DATE = '2025-01-01'
 
-
-# ═══════════════════════════════════════════════════════════
-# دوال التحويل
-# ═══════════════════════════════════════════════════════════
-def optimize_image(image_path, max_width=2500):
-    try:
-        img = Image.open(image_path)
-        if img.width > max_width:
-            ratio = max_width / img.width
-            new_size = (max_width, int(img.height * ratio))
-            img = img.resize(new_size, Image.LANCZOS)
-        img.save(image_path, optimize=True, quality=92)
-    except Exception:
-        pass
-
-
-def add_timestamp_to_image(image_path):
-    try:
-        img = Image.open(image_path).convert("RGB")
-        draw = ImageDraw.Draw(img)
-        ts = datetime.now().strftime("%Y-%m-%d  %H:%M")
-        x, y = 12, 12
-        try:
-            bbox = draw.textbbox((x, y), ts)
-            draw.rectangle([bbox[0]-4, bbox[1]-4, bbox[2]+4, bbox[3]+4], fill=(255,255,255))
-        except Exception:
-            pass
-        draw.text((x, y), ts, fill=(200, 0, 0))
-        img.save(image_path, optimize=True, quality=92)
-    except Exception:
-        pass
-
-
-def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
-    try:
-        img = Image.open(image_path).convert("RGBA")
-        overlay = Image.new("RGBA", img.size, (0,0,0,0))
-        draw = ImageDraw.Draw(overlay)
-        font_size = max(14, img.width // 60)
-        font = None
-        for fn in ["arial.ttf", "tahoma.ttf", "segoeui.ttf"]:
-            try:
-                font = ImageFont.truetype(fn, font_size)
-                break
-            except Exception:
-                continue
-        if font is None:
-            font = ImageFont.load_default()
-        try:
-            bbox = draw.textbbox((0,0), text, font=font)
-            tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
-        except Exception:
-            tw, th = font_size*len(text)//2, font_size
-        margin = 15
-        x = img.width - tw - margin
-        y = img.height - th - margin
-        pad = 6
-        draw.rectangle([x-pad, y-pad, x+tw+pad, y+th+pad], fill=(255,255,255,180))
-        draw.text((x, y), text, fill=(180,0,0,220), font=font)
-        combined = Image.alpha_composite(img, overlay)
-        combined.convert("RGB").save(image_path, optimize=True, quality=92)
-    except Exception:
-        pass
-
-
-def excel_to_image(excel_path, image_path, scale=3, sheet_name=None):
-    try:
-        import xlwings as xw
-        import fitz
-        pdf_temp = os.path.splitext(image_path)[0] + "_temp.pdf"
-        
-        app = xw.App(visible=False, add_book=False)
-        app.display_alerts = False
-        app.screen_updating = False
-        try:
-            wb = app.books.open(os.path.abspath(excel_path))
-            sheet = wb.sheets[sheet_name] if sheet_name else wb.sheets[0]
-            ps = sheet.api.PageSetup
-            ps.Orientation = 2
-            ps.Zoom = False
-            ps.FitToPagesWide = 1
-            ps.FitToPagesTall = 1
-            ps.LeftMargin = 0
-            ps.RightMargin = 0
-            ps.TopMargin = 0
-            ps.BottomMargin = 0
-            ps.CenterHorizontally = True
-            sheet.api.ExportAsFixedFormat(0, os.path.abspath(pdf_temp))
-            wb.close()
-        finally:
-            app.quit()
-        
-        if not os.path.exists(pdf_temp):
-            return False, "❌ فشل تصدير PDF"
-        
-        doc = fitz.open(pdf_temp)
-        page = doc[0]
-        mat = fitz.Matrix(scale, scale)
-        pix = page.get_pixmap(matrix=mat, alpha=False)
-        pix.save(image_path)
-        doc.close()
-        try:
-            os.remove(pdf_temp)
-        except:
-            pass
-        
-        optimize_image(image_path, max_width=2500)
-        add_timestamp_to_image(image_path)
-        add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا")
-        return True, f"✅ تم إنشاء الصورة"
-    except Exception as e:
-        return False, f"❌ خطأ: {e}"
-
-
-def convert_uploaded_excel_to_image(uploaded_file):
-    if uploaded_file is None:
-        return False, "❌ يرجى رفع ملف Excel أولاً."
-    
-    try:
-        # حفظ الملف المرفوع مؤقتاً باسم الملف المحلي
-        with open(LOCAL_EXCEL_PATH, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-            
-        if not os.path.exists(LOCAL_EXCEL_PATH):
-            return False, f"❌ فشل حفظ الملف المرفوع."
-        
-        # تحويل الإكسل إلى صورة
-        return excel_to_image(LOCAL_EXCEL_PATH, LOCAL_IMAGE_PATH, scale=3, sheet_name=SHEET_NAME)
-        
-    except Exception as e:
-        return False, f"❌ خطأ أثناء معالجة الملف: {e}"
+# رابط ملف الـ PDF في مستودعك (تأكد من اسم المستخدم الصحيح)
+PDF_URL = "https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/Daily_rep.pdf"
 
 
 # ═══════════════════════════════════════════════════════════
@@ -496,45 +365,46 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    # أداة رفع الملف
-    uploaded_file = st.file_uploader("📂 قم برفع ملف التقرير اليومي (Daily_rep.xlsx)", type=["xlsx"])
-    
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("🔄 توليد التقرير من الملف المرفوع", width="stretch", type="primary"):
-            if uploaded_file is not None:
-                with st.spinner('⏳ جاري معالجة الملف وتحويله إلى صورة...'):
-                    ok, msg = convert_uploaded_excel_to_image(uploaded_file)
-                    if ok:
-                        st.cache_data.clear()
-                        st.success(msg)
-                        st.rerun()
-                    else:
-                        st.error(msg)
-            else:
-                st.warning("⚠️ يرجى رفع الملف أولاً قبل الضغط على الزر.")
-    
-    with col2:
-        if os.path.exists(LOCAL_IMAGE_PATH):
-            mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
-            st.info(f"📅 آخر تحديث: {mtime.strftime('%Y-%m-%d %H:%M')}")
-    
-    st.markdown("---")
-    
-    if os.path.exists(LOCAL_IMAGE_PATH):
-        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
-        st.image(LOCAL_IMAGE_PATH, width=img_width)
+    # محاولة جلب الملف من GitHub
+    try:
+        # إضافة وقت للرابط لتجاوز الكاش (Cache) وجلب أحدث نسخة دائماً
+        response = requests.get(f"{PDF_URL}?t={datetime.now().timestamp()}")
         
-        with open(LOCAL_IMAGE_PATH, "rb") as f:
+        if response.status_code == 200:
+            # تحويل الـ PDF إلى Base64 لعرضه داخل الصفحة
+            base64_pdf = base64.b64encode(response.content).decode('utf-8')
+            
+            # إعداد الإطار (iframe) لعرض الـ PDF
+            pdf_display = f"""
+            <iframe 
+                src="data:application/pdf;base64,{base64_pdf}" 
+                width="100%" 
+                height="850" 
+                type="application/pdf"
+                style="border: 2px solid #4A90D9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+            ></iframe>
+            """
+            st.markdown(pdf_display, unsafe_allow_html=True)
+            
+            # إضافة زر للتحميل كخيار إضافي للمستخدم
             st.download_button(
-                "🖼️ تحميل الصورة PNG",
-                data=f.read(),
-                file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
-                mime='image/png',
-                width="stretch"
+                label="📥 تحميل التقرير كملف PDF",
+                data=response.content,
+                file_name=f'Daily_rep_{datetime.now().strftime("%Y-%m-%d")}.pdf',
+                mime='application/pdf',
+                type="primary"
             )
-    else:
-        st.warning("⏳ لم يتم توليد تقرير بعد... يرجى رفع الملف والضغط على الزر أعلاه.")
+            
+            # عرض وقت آخر تحديث
+            st.caption(f"🔄 تم جلب أحدث نسخة من السحابة (GitHub).")
+            
+        elif response.status_code == 404:
+            st.warning("⏳ لم يتم العثور على التقرير في المستودع بعد. يرجى التأكد من رفع الملف.")
+        else:
+            st.error(f"❌ حدث خطأ أثناء الاتصال بالخادم. كود الخطأ: {response.status_code}")
+
+    except Exception as e:
+        st.error(f"❌ حدث خطأ أثناء محاولة عرض التقرير: {e}")
 
     st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
