@@ -5,3 +5,4 @@ opencv-python-headless
 plotly
 av
 streamlit-webrtc
+streamlit[pdf]
