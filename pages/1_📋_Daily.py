@@ -34,12 +34,12 @@ apply_common_css()
 # ═══════════════════════════════════════════════════════════
 # إعدادات
 # ═══════════════════════════════════════════════════════════
-NETWORK_EXCEL_PATH = r'\\CTRL-ROOM\ctsh\DAILY_REP.xlsx'
+NETWORK_EXCEL_PATH = 'DAILY_REP.xlsx'
 LOCAL_EXCEL_PATH = 'Daily_rep.xlsx'
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
 SHEET_NAME = None
 
-MAINJOB_PATH = r'E:\firstpy\mainjob.xlsx'
+MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
     'my_job - 2025',
