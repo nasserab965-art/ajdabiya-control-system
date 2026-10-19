@@ -365,26 +365,21 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
+    st.markdown("### 📋 التقرير اليومي - Daily_rep")
+    
     # محاولة جلب الملف من GitHub
     try:
-        # إضافة وقت للرابط لتجاوز الكاش (Cache) وجلب أحدث نسخة دائماً
+        # إضافة وقت للرابط لتجاوز الكاش وجلب أحدث نسخة دائماً
         response = requests.get(f"{PDF_URL}?t={datetime.now().timestamp()}")
         
         if response.status_code == 200:
-            # تحويل الـ PDF إلى Base64 لعرضه داخل الصفحة
-            base64_pdf = base64.b64encode(response.content).decode('utf-8')
+            # حفظ الملف مؤقتاً لعرضه باستخدام مكون Streamlit
+            temp_pdf_path = "temp_daily_rep.pdf"
+            with open(temp_pdf_path, "wb") as f:
+                f.write(response.content)
             
-            # إعداد الإطار (iframe) لعرض الـ PDF
-            pdf_display = f"""
-            <iframe 
-                src="data:application/pdf;base64,{base64_pdf}" 
-                width="100%" 
-                height="850" 
-                type="application/pdf"
-                style="border: 2px solid #4A90D9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
-            ></iframe>
-            """
-            st.markdown(pdf_display, unsafe_allow_html=True)
+            # استخدام مكون Streamlit لعرض الـ PDF (أكثر أماناً ولا يحظره المتصفح)
+            st.pdf(temp_pdf_path, height=850)
             
             # إضافة زر للتحميل كخيار إضافي للمستخدم
             st.download_button(
@@ -396,8 +391,13 @@ with tab1:
             )
             
             # عرض وقت آخر تحديث
-            st.caption(f"🔄 تم جلب أحدث نسخة من السحابة (GitHub).")
+            st.caption("🔄 تم جلب أحدث نسخة من السحابة (GitHub).")
             
+            # تنظيف الملف المؤقت
+            import os
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+
         elif response.status_code == 404:
             st.warning("⏳ لم يتم العثور على التقرير في المستودع بعد. يرجى التأكد من رفع الملف.")
         else:
@@ -405,8 +405,6 @@ with tab1:
 
     except Exception as e:
         st.error(f"❌ حدث خطأ أثناء محاولة عرض التقرير: {e}")
-
-    st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
 
     df_tank, load_info = load_tank_data(MAINJOB_PATH, MAINJOB_SHEETS)
