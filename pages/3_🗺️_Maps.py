@@ -57,41 +57,46 @@ check_login()
 # ═══════════════════════════════════════════════════════════
 GLOBAL_BUTTON_CSS = """
 <style>
-    /* تكبير الخط الأساسي لكل النصوص في الصفحة */
+    /* تكبير الخط الأساسي للتطبيق بالكامل (تأثير الدومينو) */
     html, body, [class*="css"] {
-        font-size: 18px !important; 
+        font-size: 22px !important; 
     }
 
-    /* تكبير العناوين الرئيسية والفرعية */
-    h1 { font-size: 2.5rem !important; }
-    h2 { font-size: 2rem !important; }
-    h3 { font-size: 1.75rem !important; }
-    h4 { font-size: 1.5rem !important; }
+    /* تكبير العناوين بشكل إضافي */
+    h1 { font-size: 3rem !important; }
+    h2 { font-size: 2.5rem !important; }
+    h3 { font-size: 2rem !important; }
+    h4 { font-size: 1.6rem !important; }
 
     /* تكبير نصوص الأزرار */
     .stButton > button, .stButton > button *, div[data-testid="stButton"] > button, div[data-testid="stButton"] > button * {
-        font-size: 22px !important;
+        font-size: 24px !important;
         font-weight: bold !important;
     }
     .stButton > button, div[data-testid="stButton"] > button {
-        min-height: 50px !important;
+        min-height: 55px !important;
         border-radius: 10px !important;
     }
 
-    /* تكبير نصوص الاختيارات (Multiselect) وحقول الإدخال */
+    /* تكبير خيارات القوائم المنسدلة (Multiselect) */
     div[data-baseweb="select"] * {
-        font-size: 18px !important;
+        font-size: 20px !important;
     }
 
-    /* تكبير نصوص الجداول (Dataframe) */
+    /* تكبير عناوين الجداول المنسدلة (Expander) */
+    details > summary {
+        font-size: 22px !important;
+        font-weight: bold !important;
+    }
+
+    /* تكبير النصوص داخل الجداول */
     div[data-testid="stDataFrame"] * {
-        font-size: 16px !important;
+        font-size: 18px !important;
     }
     
-    /* تكبير نصوص القوائم المنسدلة (Expander) */
-    details > summary {
+    /* تكبير نصوص التنبيهات والملاحظات */
+    div[data-testid="stNotification"] * {
         font-size: 20px !important;
-        font-weight: bold !important;
     }
 </style>
 """
