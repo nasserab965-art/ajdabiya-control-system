@@ -7,3 +7,4 @@ av
 streamlit-webrtc
 streamlit[pdf]
 shapely
+pyproj
