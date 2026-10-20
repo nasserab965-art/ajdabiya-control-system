@@ -4,8 +4,14 @@
 import sys
 import os
 
-# ⚠️ يجب أن يكون هذا السطر في البداية وقبل أي استيراد آخر
-# sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# هذا السطر يخبر بايثون بالرجوع خطوة واحدة للخلف (إلى المجلد الرئيسي حيث يوجد siggmra_module.py)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# الآن يمكنك استيراد الملف بكل أمان
+import siggmra_module as sgm
 
 import streamlit as st
 import sqlite3
