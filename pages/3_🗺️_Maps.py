@@ -284,7 +284,10 @@ if 'active_line_map' not in st.session_state:
 if st.session_state.active_line_map is not None:
     line_key = st.session_state.active_line_map
     cfg = sgm.LINES_CONFIG[line_key]
-
+# ⚠️ إضافة هذا التحقق هنا (في ملف 3_🗺️_Maps.py)
+    if not FOLIUM_AVAILABLE:
+        st.error("❌ مكتبات الخرائط (folium / streamlit-folium) غير مثبتة. الرجاء إضافتها إلى requirements.txt وإعادة التشغيل.")
+        st.stop()
     st.markdown("""
     <style>
         section[data-testid="stSidebar"] { display: none !important; }
