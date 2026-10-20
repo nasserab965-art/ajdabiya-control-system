@@ -8,3 +8,5 @@ streamlit-webrtc
 streamlit[pdf]
 shapely
 pyproj
+folium
+streamlit-folium
