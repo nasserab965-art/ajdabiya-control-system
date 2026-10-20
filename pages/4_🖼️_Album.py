@@ -60,7 +60,7 @@ st.markdown("تصفح صور المشروع والمواقع")
 st.markdown("---")
 
 # 📁 مسار مجلد الصور
-album_path = os.path.join(os.path.dirname(__file__), "album")
+ALBUM_PATH = os.path.join(os.path.dirname(__file__), "album")
 
 SUPPORTED_EXTS = (
     '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
