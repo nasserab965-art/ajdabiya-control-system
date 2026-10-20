@@ -517,8 +517,8 @@ if st.session_state.active_line_map is not None:
 
                     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
-                    # ═══ الصف الثاني: أزرار الخرائط ═══
-                    col_map1, col_map2 = st.columns(2)
+                    # ═══ الصف الثاني: أزرار الخرائط (3 أزرار) ═══
+                    col_map1, col_map2, col_map3 = st.columns(3)
 
                     with col_map1:
                         # فتح نقطة البداية في Google Maps
@@ -531,13 +531,28 @@ if st.session_state.active_line_map is not None:
                             '<button style="width:100%; padding:15px; '
                             'background:linear-gradient(135deg, #4285F4 0%, #34A853 100%); '
                             'color:white; border:none; border-radius:8px; '
-                            'font-size:20px; font-weight:bold; cursor:pointer; '
+                            'font-size:18px; font-weight:bold; cursor:pointer; '
                             'box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);">'
-                            '📍 فتح موقع البداية في Google Maps</button></a>',
+                            '📍 Google Maps</button></a>',
                             unsafe_allow_html=True
                         )
 
                     with col_map2:
+                        # فتح Google Earth
+                        earth_url = "https://earth.google.com/web/"
+                        
+                        st.markdown(
+                            f'<a href="{earth_url}" target="_blank" style="text-decoration:none;">'
+                            '<button style="width:100%; padding:15px; '
+                            'background:linear-gradient(135deg, #0F9D58 0%, #34A853 100%); '
+                            'color:white; border:none; border-radius:8px; '
+                            'font-size:18px; font-weight:bold; cursor:pointer; '
+                            'box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3);">'
+                            '🌍 Google Earth</button></a>',
+                            unsafe_allow_html=True
+                        )
+
+                    with col_map3:
                         # فتح Google My Maps لعرض كل النقاط
                         mymaps_url = "https://www.google.com/maps/d/u/0/"
                         
@@ -546,9 +561,9 @@ if st.session_state.active_line_map is not None:
                             '<button style="width:100%; padding:15px; '
                             'background:linear-gradient(135deg, #EA4335 0%, #FBBC05 100%); '
                             'color:white; border:none; border-radius:8px; '
-                            'font-size:20px; font-weight:bold; cursor:pointer; '
+                            'font-size:18px; font-weight:bold; cursor:pointer; '
                             'box-shadow: 0 4px 10px rgba(234, 67, 53, 0.3);">'
-                            '🗺️ عرض كل النقاط في My Maps</button></a>',
+                            '🗺️ My Maps (كل النقاط)</button></a>',
                             unsafe_allow_html=True
                         )
 
