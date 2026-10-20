@@ -729,4 +729,4 @@ with col2:
 st.markdown("---")
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
-    if st.button("🏠 العودة للرئيسية", width="
+    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key
