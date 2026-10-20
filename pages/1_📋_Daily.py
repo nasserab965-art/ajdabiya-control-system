@@ -308,7 +308,7 @@ with tab1:
         text-align: center;
     ">
         <h1 style="
-            color: #F9CA24; 
+            color: #FFFFFF; 
             font-size: 48px; 
             margin: 0 0 25px 0;
             text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
