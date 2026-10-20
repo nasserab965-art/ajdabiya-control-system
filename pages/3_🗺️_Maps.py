@@ -477,10 +477,11 @@ if st.session_state.active_line_map is not None:
                     add_start_end=add_start_end
                 )
 
-                if kml_content is None:
+                               if kml_content is None:
                     st.warning("⚠️ لا توجد نقاط بعد التصفية — عدّل الفلتر")
                 else:
-                    col_dl1, col_dl2, col_dl3, col_dl4 = st.columns(4)
+                    # ═══ الصف الأول: أزرار التحميل ═══
+                    col_dl1, col_dl2, col_dl3 = st.columns(3)
 
                     with col_dl1:
                         st.download_button(
@@ -507,18 +508,6 @@ if st.session_state.active_line_map is not None:
                         )
 
                     with col_dl3:
-                        st.markdown(
-                            '<a href="https://earth.google.com/web/" '
-                            'target="_blank" style="text-decoration:none;">'
-                            '<button style="width:100%; padding:10px; '
-                            'background:linear-gradient(135deg, #34A853 0%, #0F9D58 100%); '
-                            'color:white; border:none; border-radius:8px; '
-                            'font-size:20px; font-weight:bold; cursor:pointer;">'
-                            '🌍 فتح Google Earth</button></a>',
-                            unsafe_allow_html=True
-                        )
-
-                    with col_dl4:
                         output = io.BytesIO()
                         with pd.ExcelWriter(output, engine='openpyxl') as w:
                             result_df.to_excel(w, index=False)
@@ -531,7 +520,25 @@ if st.session_state.active_line_map is not None:
                             width="stretch"
                         )
 
-                with st.expander("📊 عرض الجدول الكامل (Excel Style)"):
+                    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+                    # ═══ الصف الثاني: زر Google Maps ═══
+                    # جلب إحداثيات أول نقطة من البيانات
+                    first_lat = result_df['Latitude'].iloc[0]
+                    first_lon = result_df['Longitude'].iloc[0]
+                    maps_url = f"https://www.google.com/maps?q={first_lat},{first_lon}"
+                    
+                    st.markdown(
+                        f'<a href="{maps_url}" '
+                        'target="_blank" style="text-decoration:none;">'
+                        '<button style="width:100%; padding:15px; '
+                        'background:linear-gradient(135deg, #4285F4 0%, #34A853 100%); '
+                        'color:white; border:none; border-radius:8px; '
+                        'font-size:22px; font-weight:bold; cursor:pointer; '
+                        'box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);">'
+                        '📍 فتح موقع البداية في Google Maps</button></a>',
+                        unsafe_allow_html=True
+                    )
                     st.dataframe(result_df, width="stretch", height=400)
 
         except FileNotFoundError as e:
