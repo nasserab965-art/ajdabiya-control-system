@@ -10,9 +10,6 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-# الآن يمكنك استيراد الملف بكل أمان
-import siggmra_module as sgm
-
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -95,7 +92,6 @@ def kml_to_kmz_bytes(kml_content: str, doc_name: str = "doc.kml") -> bytes:
 # 🖨️ دالة فتح نافذة الطباعة
 # ═══════════════════════════════════════════════════════════
 def open_print_window(df, title, rows_per_column=30):
-    # ... (نفس الكود الخاص بك بدون تغيير)
     total_rows = len(df)
     if total_rows <= rows_per_column:
         num_columns_display = 1
@@ -172,7 +168,6 @@ def open_print_window(df, title, rows_per_column=30):
 # 📊 دالة إنشاء رسوم GMRALINES
 # ═══════════════════════════════════════════════════════════
 def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_col=None):
-    # ... (نفس الكود الخاص بك بدون تغيير)
     if not PLOTLY_AVAILABLE:
         st.error("❌ مكتبة Plotly غير مثبتة. الرجاء تشغيل: pip install plotly")
         return
@@ -277,7 +272,206 @@ def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_c
 if 'active_line_map' not in st.session_state:
     st.session_state.active_line_map = None
 
-# ... (باقي الكود الخاص بك كما هو تماماً من هنا وحتى النهاية)
+# ═══════════════════════════════════════════════════════════
+# 🗺️ صفحة عرض خريطة الخط (ملء الشاشة)
+# ═══════════════════════════════════════════════════════════
+if st.session_state.active_line_map is not None:
+    line_key = st.session_state.active_line_map
+    cfg = sgm.LINES_CONFIG[line_key]
+
+    if not FOLIUM_AVAILABLE:
+        st.error("❌ مكتبات الخرائط (folium / streamlit-folium) غير مثبتة. الرجاء إضافتها إلى requirements.txt وإعادة التشغيل.")
+        st.stop()
+
+    st.markdown("""
+    <style>
+        section[data-testid="stSidebar"] { display: none !important; }
+        header[data-testid="stHeader"] { display: none !important; }
+        [data-testid="stToolbar"] { display: none !important; }
+        [data-testid="collapsedControl"] { display: none !important; }
+        footer { display: none !important; }
+        .block-container {
+            padding: 1rem !important;
+            max-width: 100vw !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col_top1, col_top2 = st.columns([4, 1])
+    with col_top1:
+        st.markdown(f"""
+        <h2 style="color: #1A5276; margin: 0;">
+            🗺️ خريطة {line_key} — {cfg['name']}
+        </h2>
+        """, unsafe_allow_html=True)
+    with col_top2:
+        if st.button("⬅️ رجوع", width='stretch', type="primary", key="back_from_line_map"):
+            st.session_state.active_line_map = None
+            st.rerun()
+
+    st.markdown("---")
+
+    with st.spinner(f"⏳ جاري تحميل نقاط {line_key}..."):
+        try:
+            result_df = sgm.project_line_points(
+                line_key=line_key,
+                allines_path="ALLINES.xlsx"
+            )
+
+            if result_df.empty:
+                st.warning(f"⚠️ لا توجد نقاط للخط {line_key}")
+            else:
+                col_i1, col_i2, col_i3, col_i4 = st.columns(4)
+                with col_i1:
+                    st.metric("عدد النقاط", len(result_df))
+                with col_i2:
+                    st.metric("أول محطة", str(result_df['Station'].iloc[0]))
+                with col_i3:
+                    st.metric("آخر محطة", str(result_df['Station'].iloc[-1]))
+                with col_i4:
+                    st.metric("طول الخط",
+                              f"{result_df['Distance_m'].max()/1000:.1f} كم")
+
+                st.markdown("---")
+
+                st.markdown("### ⚙️ خيارات التصدير")
+
+                col_f1, col_f2 = st.columns([2, 1])
+                with col_f1:
+                    all_types = sorted(
+                        result_df['Type'].astype(str).str.upper()
+                        .str.extract(r'(AV|MH|PW|BO|TO|VA|TEE|FM|BV)')[0]
+                        .dropna().unique().tolist()
+                    )
+                    selected_types = st.multiselect(
+                        "🎯 اختر الأنواع للتصدير (اترك فارغاً = الكل):",
+                        options=all_types,
+                        default=[],
+                        key=f"filter_types_{line_key}",
+                        help="مثلاً: اختر MH فقط لعرض غرف التفتيش"
+                    )
+
+                with col_f2:
+                    add_start_end = st.checkbox(
+                        "⭐ إضافة نقاط البداية/النهاية",
+                        value=True,
+                        key=f"add_se_{line_key}"
+                    )
+
+                filter_types = selected_types if selected_types else None
+
+                lat_min = result_df['Latitude'].min()
+                lat_max = result_df['Latitude'].max()
+                lon_min = result_df['Longitude'].min()
+                lon_max = result_df['Longitude'].max()
+
+                center_lat = (lat_min + lat_max) / 2
+                center_lon = (lon_min + lon_max) / 2
+
+                m = folium.Map(
+                    location=[center_lat, center_lon],
+                    zoom_start=8,
+                    tiles='OpenStreetMap',
+                    prefer_canvas=True
+                )
+
+                m.fit_bounds([
+                    [lat_min - 0.05, lon_min - 0.05],
+                    [lat_max + 0.05, lon_max + 0.05]
+                ])
+
+                try:
+                    line_geom = sgm.load_line_from_kml(
+                        cfg["kml_file"],
+                        reverse=cfg.get("reverse_kml", False)
+                    )
+                    line_geom_simple = line_geom.simplify(0.001)
+
+                    t_wgs = sgm.Transformer.from_crs(
+                        "EPSG:32634", "EPSG:4326", always_xy=True
+                    )
+                    line_coords = [
+                        t_wgs.transform(x, y)
+                        for x, y in line_geom_simple.coords
+                    ]
+
+                    folium.PolyLine(
+                        locations=[(lat, lon) for lon, lat in line_coords],
+                        color=cfg.get('color', '#00008B'),
+                        weight=4,
+                        opacity=0.8,
+                        tooltip=f"مسار {line_key}"
+                    ).add_to(m)
+
+                    if line_coords:
+                        start_lon, start_lat = line_coords[0]
+                        end_lon, end_lat = line_coords[-1]
+
+                        folium.Marker(
+                            [start_lat, start_lon],
+                            popup=f"🟢 بداية {line_key}",
+                            icon=folium.Icon(color='green', icon='play')
+                        ).add_to(m)
+
+                        folium.Marker(
+                            [end_lat, end_lon],
+                            popup=f"🔴 نهاية {line_key}",
+                            icon=folium.Icon(color='red', icon='stop')
+                        ).add_to(m)
+                except Exception as e:
+                    st.warning(f"⚠️ لم يتم رسم المسار: {e}")
+
+                if len(result_df) > 0:
+                    df_sorted = result_df.sort_values('Station_m').reset_index(drop=True)
+                    first = df_sorted.iloc[0]
+                    last = df_sorted.iloc[-1]
+
+                    folium.Marker(
+                        location=[first['Latitude'], first['Longitude']],
+                        popup=folium.Popup(
+                            f"<b>🟢 بداية {line_key}</b><br>"
+                            f"المحطة: {first['Station']}<br>"
+                            f"النوع: {first['Type']}<br>"
+                            f"الموقع: {first['Distance_m']/1000:.3f} كم",
+                            max_width=250
+                        ),
+                        tooltip=f"🟢 بداية — {first['Station']}",
+                        icon=folium.Icon(color='green', icon='play', prefix='fa')
+                    ).add_to(m)
+
+                    folium.Marker(
+                        location=[last['Latitude'], last['Longitude']],
+                        popup=folium.Popup(
+                            f"<b>🔴 نهاية {line_key}</b><br>"
+                            f"المحطة: {last['Station']}<br>"
+                            f"النوع: {last['Type']}<br>"
+                            f"الموقع: {last['Distance_m']/1000:.3f} كم",
+                            max_width=250
+                        ),
+                        tooltip=f"🔴 نهاية — {last['Station']}",
+                        icon=folium.Icon(color='red', icon='stop', prefix='fa')
+                    ).add_to(m)
+
+                folium.LayerControl().add_to(m)
+
+                st_folium(
+                    m,
+                    width=None,
+                    height=650,
+                    key=f"full_map_{line_key}",
+                    returned_objects=[]
+                )
+
+                st.markdown("---")
+
+                kml_content = sgm.build_kml_enhanced(
+                    result_df,
+                    line_key,
+                    include_path=True,
+                    filter_types=filter_types,
+                    add_start_end=add_start_end
+                )
+
                 if kml_content is None:
                     st.warning("⚠️ لا توجد نقاط بعد التصفية — عدّل الفلتر")
                 else:
@@ -340,7 +534,7 @@ if 'active_line_map' not in st.session_state:
                         unsafe_allow_html=True
                     )
 
-                # ═══ عرض الجدول الكامل (أعدت هذا السطر لأنه كان مفقوداً) ═══
+                # ═══ عرض الجدول الكامل ═══
                 with st.expander("📊 عرض الجدول الكامل (Excel Style)"):
                     st.dataframe(result_df, width="stretch", height=400)
 
@@ -353,6 +547,8 @@ if 'active_line_map' not in st.session_state:
             st.code(traceback.format_exc())
 
     st.stop()
+
+
 # ═══════════════════════════════════════════════════════════
 # 🏠 الصفحة الرئيسية
 # ═══════════════════════════════════════════════════════════
