@@ -517,21 +517,21 @@ if st.session_state.active_line_map is not None:
 
                     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
-                    # ═══ الصف الثاني: زر Google Earth فقط ═══
-                    col_earth, _ = st.columns([2, 1])
-                    with col_earth:
-                        earth_url = "https://earth.google.com/web/"
-                        
-                        st.markdown(
-                            f'<a href="{earth_url}" target="_blank" style="text-decoration:none;">'
-                            '<button style="width:100%; padding:15px; '
-                            'background:linear-gradient(135deg, #0F9D58 0%, #34A853 100%); '
-                            'color:white; border:none; border-radius:8px; '
-                            'font-size:20px; font-weight:bold; cursor:pointer; '
-                            'box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3);">'
-                            '🌍 فتح Google Earth</button></a>',
-                            unsafe_allow_html=True
-                        )
+                    # ═══ الصف الثاني: زر Google Earth (بعرض كامل) ═══
+                    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+                    
+                    earth_url = "https://earth.google.com/web/"
+                    
+                    st.markdown(
+                        f'<a href="{earth_url}" target="_blank" style="text-decoration:none;">'
+                        '<button style="width:100%; padding:15px; '
+                        'background:linear-gradient(135deg, #0F9D58 0%, #34A853 100%); '
+                        'color:white; border:none; border-radius:8px; '
+                        'font-size:22px; font-weight:bold; cursor:pointer; '
+                        'box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3);">'
+                        '🌍 فتح Google Earth</button></a>',
+                        unsafe_allow_html=True
+                    )
 
                 # ═══ عرض الجدول الكامل ═══
                 with st.expander("📊 عرض الجدول الكامل (Excel Style)"):
