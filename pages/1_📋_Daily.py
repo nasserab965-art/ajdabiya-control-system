@@ -379,7 +379,7 @@ with tab1:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 📋 التقرير اليومي - Daily_rep")
+    #st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
