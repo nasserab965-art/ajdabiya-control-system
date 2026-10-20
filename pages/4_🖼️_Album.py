@@ -41,12 +41,18 @@ GLOBAL_BUTTON_CSS = """
 st.markdown(GLOBAL_BUTTON_CSS, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 🏠 زر العودة للرئيسية (أعلى الصفحة)
+# 🏠 أزرار التنقل (أعلى الصفحة)
 # ═══════════════════════════════════════════════════════════
-col1, col2, col3 = st.columns([1, 2, 1])
-with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
+col_left, col_right = st.columns([1, 1])
+
+with col_right:
+    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top_album"):
         st.switch_page("app_main.py")
+
+with col_left:
+    if st.button("⬅️ رجوع", width="stretch", type="primary", key="back_to_maps_from_album"):
+        # العودة إلى صفحة الخرائط
+        st.switch_page("pages/3_🗺️_Maps.py")
 
 st.markdown("---")
 
