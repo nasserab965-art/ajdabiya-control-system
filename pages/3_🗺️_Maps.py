@@ -533,9 +533,15 @@ if st.session_state.active_line_map is not None:
                         unsafe_allow_html=True
                     )
 
+                # ═══ مسافة للفصل بين الزر والجدول ═══
+                st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
+
                 # ═══ عرض الجدول الكامل ═══
                 with st.expander("📊 عرض الجدول الكامل (Excel Style)"):
                     st.dataframe(result_df, width="stretch", height=400)
+                    
+                # ═══ مسافة في نهاية الصفحة ═══
+                st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 
         except FileNotFoundError as e:
             st.error(f"❌ ملف غير موجود: {e}")
