@@ -6,3 +6,4 @@ plotly
 av
 streamlit-webrtc
 streamlit[pdf]
+shapely
