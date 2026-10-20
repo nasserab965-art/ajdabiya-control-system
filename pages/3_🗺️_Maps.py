@@ -57,13 +57,41 @@ check_login()
 # ═══════════════════════════════════════════════════════════
 GLOBAL_BUTTON_CSS = """
 <style>
+    /* تكبير الخط الأساسي لكل النصوص في الصفحة */
+    html, body, [class*="css"] {
+        font-size: 18px !important; 
+    }
+
+    /* تكبير العناوين الرئيسية والفرعية */
+    h1 { font-size: 2.5rem !important; }
+    h2 { font-size: 2rem !important; }
+    h3 { font-size: 1.75rem !important; }
+    h4 { font-size: 1.5rem !important; }
+
+    /* تكبير نصوص الأزرار */
     .stButton > button, .stButton > button *, div[data-testid="stButton"] > button, div[data-testid="stButton"] > button * {
-        font-size: 25px !important;
+        font-size: 22px !important;
         font-weight: bold !important;
     }
     .stButton > button, div[data-testid="stButton"] > button {
         min-height: 50px !important;
         border-radius: 10px !important;
+    }
+
+    /* تكبير نصوص الاختيارات (Multiselect) وحقول الإدخال */
+    div[data-baseweb="select"] * {
+        font-size: 18px !important;
+    }
+
+    /* تكبير نصوص الجداول (Dataframe) */
+    div[data-testid="stDataFrame"] * {
+        font-size: 16px !important;
+    }
+    
+    /* تكبير نصوص القوائم المنسدلة (Expander) */
+    details > summary {
+        font-size: 20px !important;
+        font-weight: bold !important;
     }
 </style>
 """
