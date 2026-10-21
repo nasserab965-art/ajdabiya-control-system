@@ -6,14 +6,11 @@ import os
 import hashlib
 import base64
 
-
 USER_PASSWORD_HASH = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
 BACKGROUND_IMAGE_PATH = "gmmra1.jpg"
 
-
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
-
 
 st.set_page_config(
     page_title="قراءات غرف التحكم-PH1",
@@ -74,15 +71,12 @@ if not st.session_state.logged_in:
                 st.error("❌ الرقم غير صحيح")
     st.stop()
 
-
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (إخفاء الشريط الأصلي تماماً)
+# 🎨 CSS العام (إخفاء الشريط الأصلي)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     section[data-testid="stSidebar"] { display: none !important; }
-    
-    /* إخفاء الشريط الأصلي تماماً لتجنب أي مشاكل */
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
@@ -139,9 +133,7 @@ st.markdown("""
         display: block;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       شريط الأدوات المخصص (بديل Streamlit) فوق الخريطة
-       ═══════════════════════════════════════════════════════════ */
+    /* شريط الأدوات المخصص */
     .custom-toolbar {
         position: fixed;
         top: 15px;
@@ -150,7 +142,7 @@ st.markdown("""
         display: flex;
         align-items: center;
         gap: 15px;
-        background: rgba(0, 0, 0, 0.4); /* خلفية داكنة شفافة لتوضيح الأيقونات البيضاء */
+        background: rgba(0, 0, 0, 0.4);
         padding: 8px 18px;
         border-radius: 30px;
         backdrop-filter: blur(5px);
@@ -171,12 +163,11 @@ st.markdown("""
     }
     
     .custom-toolbar a:hover, .custom-toolbar span:hover {
-        color: #F9CA24 !important; /* لون أصفر عند التمرير */
+        color: #F9CA24 !important;
         transform: scale(1.15);
     }
 </style>
 """, unsafe_allow_html=True)
-
 
 # ═══════════════════════════════════════════════════════════
 # 🗺️ الخريطة كخلفية
@@ -190,32 +181,18 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
     )
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 شريط الأدوات المخصص (بدون GitHub)
+# 🎨 شريط الأدوات المخصص (بدون GitHub) - HTML
 # ═══════════════════════════════════════════════════════════
-st.markdown("""
+toolbar_html = """
 <div class="custom-toolbar">
-    <!-- القلم (تعديل) -->
-    <a href="https://github.com/nasserab965-art/ajdabiya-control-system/edit/main/app_main.py" target="_blank" title="تعديل الصفحة">
-        ✏️
-    </a>
-    
-    <!-- النجمة -->
-    <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">
-        ☆
-    </a>
-    
-    <!-- المشاركة -->
-    <span title="مشاركة الرابط" onclick="navigator.clipboard.writeText(window.location.href); alert('تم نسخ الرابط بنجاح!')">
-        🔗
-    </span>
-
-    <!-- النقاط الثلاث -->
-    <span title="القائمة" style="letter-spacing: 2px; font-size: 24px; margin-left: 5px;">
-        ⋮
-    </span>
+    <a href="https://github.com/nasserab965-art/ajdabiya-control-system/edit/main/app_main.py" target="_blank" title="تعديل الصفحة">✏️</a>
+    <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">☆</a>
+    <span title="مشاركة الرابط" onclick="navigator.clipboard.writeText(window.location.href); alert('تم نسخ الرابط بنجاح!')">🔗</span>
+    <span title="القائمة" style="letter-spacing: 2px; font-size: 24px; margin-left: 5px;">⋮</span>
 </div>
-""", unsafe_allow_html=True)
-
+"""
+# استخدام st.html لضمان تنفيذ الكود كـ HTML وليس كنص
+st.html(toolbar_html)
 
 # ═══════════════════════════════════════════════════════════
 # 🎨 CSS للأزرار — تصميم متدرج
@@ -291,33 +268,24 @@ st.html("""
 </style>
 """)
 
-
 # ═══════════════════════════════════════════════════════════
-# 🎯 الأزرار
+# 🎯 الأزرار الرئيسية
 # ═══════════════════════════════════════════════════════════
 st.markdown("<br>" * 12, unsafe_allow_html=True)
 
 col_left, col_spacer = st.columns([1, 3])
 
 with col_left:
-    if st.button("📋  التقرير اليومي + الكاميرات",
-                 key="go_daily",
-                 use_container_width=True):
+    if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
         st.switch_page("pages/1_📋_Daily.py")
     
-    if st.button("📈  أرشيف القراءات 2025 + 2026",
-                 key="go_archive",
-                 use_container_width=True):
+    if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
         st.switch_page("pages/2_📈_Archive.py")
     
-    if st.button("🗺️  الخطوط والمحطات وخرائط Google",
-                 key="go_maps",
-                 use_container_width=True):
+    if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
         st.switch_page("pages/3_🗺️_Maps.py")
     
-    if st.button("🚪  تسجيل الخروج",
-                 key="logout_main",
-                 use_container_width=True):
+    if st.button("🚪  تسجيل الخروج", key="logout_main", use_container_width=True):
         st.session_state.logged_in = False
         st.query_params.clear()
         st.rerun()
