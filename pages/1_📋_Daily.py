@@ -33,6 +33,20 @@ st.set_page_config(
 apply_common_css()
 
 # ═══════════════════════════════════════════════════════════
+# 🛑 إخفاء شريط الأدوات العلوي (Header)
+# ═══════════════════════════════════════════════════════════
+st.markdown("""
+<style>
+    /* إخفاء شريط الأدوات بالكامل */
+    header[data-testid="stHeader"] { display: none !important; }
+    [data-testid="stToolbar"] { display: none !important; }
+    [data-testid="stDecoration"] { display: none !important; }
+    #MainMenu { visibility: hidden !important; }
+    footer { visibility: hidden !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════
 # إعدادات
 # ═══════════════════════════════════════════════════════════
 # مسار ملف الـ PDF المرفوع في المستودع بواسطة auto_uploader.py
