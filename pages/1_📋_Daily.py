@@ -32,14 +32,18 @@ st.set_page_config(
 apply_common_css()
 
 # ═══════════════════════════════════════════════════════════
-# إعدادات
+# إعدادات المسارات (تم تعديلها لتعمل على السحابة والمحلي)
 # ═══════════════════════════════════════════════════════════
+# 1. مسار الشبكة (يُستخدم فقط إذا كنت تشغل الكود على جهازك المحلي)
 NETWORK_EXCEL_PATH = r'\\CTRL-ROOM\ctsh\DAILY_REP.xlsx'
+
+# 2. المسارات المحلية (النسبية) - هذه التي ستعمل على GitHub / Streamlit Cloud
 LOCAL_EXCEL_PATH = 'Daily_rep.xlsx'
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
 SHEET_NAME = None
 
-MAINJOB_PATH = r'E:\firstpy\mainjob.xlsx'
+# 3. مسار ملف الإكسيل الرئيسي (تم تعديله ليكون نسبياً بدلاً من E:\)
+MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
     'my_job - 2025',
@@ -118,6 +122,7 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
 
 
 def excel_to_image(excel_path, image_path, scale=3, sheet_name=None):
+    # ⚠️ ملاحظة: xlwings يعمل فقط على ويندوز (محلي). لن يعمل على السيرفر السحابي (Linux)
     try:
         import xlwings as xw
         import fitz
@@ -167,8 +172,11 @@ def excel_to_image(excel_path, image_path, scale=3, sheet_name=None):
 
 
 def fetch_excel_from_network():
+    # إذا كنا على السحابة، تخطَّ مسار الشبكة واستخدم الملف المحلي مباشرة
     if not os.path.exists(NETWORK_EXCEL_PATH):
-        return False, f"❌ لا يمكن الوصول للمسار الشبكي:\n`{NETWORK_EXCEL_PATH}`"
+        if os.path.exists(LOCAL_EXCEL_PATH):
+            return True, "✅ تم استخدام ملف الإكسيل المرفوع مسبقاً في المستودع."
+        return False, f"❌ لا يمكن الوصول للمسار الشبكي، والملف المحلي غير موجود."
     
     try:
         if os.path.exists(LOCAL_EXCEL_PATH):
@@ -344,14 +352,22 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
 
 
 def render_tank_stats(df):
-    stat_cols = st.columns(4)
-    for idx, (col, meta) in enumerate(VALUE_COLS.items()):
+    valid_items = []
+    for col, meta in VALUE_COLS.items():
         if col not in df.columns:
             continue
         series = df[col].dropna()
         if series.empty:
             continue
-        
+        valid_items.append((col, meta, series))
+
+    if not valid_items:
+        st.info("ℹ️ لا توجد بيانات كافية لعرض الإحصائيات في الفترة المحددة.")
+        return
+
+    stat_cols = st.columns(len(valid_items))
+
+    for idx, (col, meta, series) in enumerate(valid_items):
         last_val = series.iloc[-1]
         prev_val = series.iloc[-2] if len(series) > 1 else last_val
         delta = last_val - prev_val
@@ -520,7 +536,7 @@ with tab1:
     ">
         <span style="color: #4A90D9; font-size: 16px; font-weight: bold;">📡 المصدر:</span>
         <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">
-            {NETWORK_EXCEL_PATH}
+            {LOCAL_EXCEL_PATH}
         </code>
     </div>
     """, unsafe_allow_html=True)
@@ -559,11 +575,12 @@ with tab1:
                 width="stretch"
             )
     else:
-        st.warning("⏳ جاري تحضير التقرير... اضغط زر إعادة التوليد")
+        st.warning("⏳ الصورة غير موجودة. اضغط زر إعادة التوليد (ملاحظة: قد لا تعمل على السحابة لأنها تتطلب Excel مثبت).")
 
     st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
 
+    # الآن سيقرأ الملف من المستودع مباشرة
     df_tank, load_info = load_tank_data(MAINJOB_PATH, MAINJOB_SHEETS)
 
     if df_tank is None or df_tank.empty:
@@ -592,9 +609,13 @@ with tab1:
             min_date = df_tank[DATE_COL].min().date()
             max_date = df_tank[DATE_COL].max().date()
             
+            default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
+            if isinstance(default_start, pd.Timestamp):
+                default_start = default_start.date()
+            
             date_range = st.date_input(
                 "📅 الفترة:",
-                value=(min_date, max_date),
+                value=(default_start, max_date),
                 min_value=min_date,
                 max_value=max_date,
                 key="date_range_filter",
