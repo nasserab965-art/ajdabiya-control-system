@@ -18,8 +18,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
+import fitz  # PyMuPDF لتحويل الـ PDF إلى صورة
 
-# الآن يمكنك استيراد الملف المشترك بأمان (الخط المتعرج هنا مجرد تنبيه من المحرر)
+# الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
 # إعداد الصفحة
@@ -32,17 +33,14 @@ st.set_page_config(
 apply_common_css()
 
 # ═══════════════════════════════════════════════════════════
-# إعدادات المسارات (تم تعديلها لتعمل على السحابة والمحلي)
+# إعدادات
 # ═══════════════════════════════════════════════════════════
-# 1. مسار الشبكة (يُستخدم فقط إذا كنت تشغل الكود على جهازك المحلي)
-NETWORK_EXCEL_PATH = r'\\CTRL-ROOM\ctsh\DAILY_REP.xlsx'
-
-# 2. المسارات المحلية (النسبية) - هذه التي ستعمل على GitHub / Streamlit Cloud
-LOCAL_EXCEL_PATH = 'Daily_rep.xlsx'
+# مسار ملف الـ PDF المرفوع في المستودع بواسطة auto_uploader.py
+PDF_FILE_PATH = "Daily_rep.pdf"
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
 SHEET_NAME = None
 
-# 3. مسار ملف الإكسيل الرئيسي (تم تعديله ليكون نسبياً بدلاً من E:\)
+# مسار ملف الإكسيل الرئيسي (النسبي ليعمل على السحابة)
 MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
@@ -121,89 +119,22 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
         pass
 
 
-def excel_to_image(excel_path, image_path, scale=3, sheet_name=None):
-    # ⚠️ ملاحظة: xlwings يعمل فقط على ويندوز (محلي). لن يعمل على السيرفر السحابي (Linux)
+def convert_pdf_to_image(pdf_path, image_path, scale=3):
+    """دالة لتحويل ملف PDF (الذي رفعه auto_uploader) إلى صورة PNG"""
     try:
-        import xlwings as xw
-        import fitz
-        pdf_temp = os.path.splitext(image_path)[0] + "_temp.pdf"
-        
-        app = xw.App(visible=False, add_book=False)
-        app.display_alerts = False
-        app.screen_updating = False
-        try:
-            wb = app.books.open(os.path.abspath(excel_path))
-            sheet = wb.sheets[sheet_name] if sheet_name else wb.sheets[0]
-            ps = sheet.api.PageSetup
-            ps.Orientation = 2
-            ps.Zoom = False
-            ps.FitToPagesWide = 1
-            ps.FitToPagesTall = 1
-            ps.LeftMargin = 0
-            ps.RightMargin = 0
-            ps.TopMargin = 0
-            ps.BottomMargin = 0
-            ps.CenterHorizontally = True
-            sheet.api.ExportAsFixedFormat(0, os.path.abspath(pdf_temp))
-            wb.close()
-        finally:
-            app.quit()
-        
-        if not os.path.exists(pdf_temp):
-            return False, "❌ فشل تصدير PDF"
-        
-        doc = fitz.open(pdf_temp)
+        doc = fitz.open(pdf_path)
         page = doc[0]
         mat = fitz.Matrix(scale, scale)
         pix = page.get_pixmap(matrix=mat, alpha=False)
         pix.save(image_path)
         doc.close()
-        try:
-            os.remove(pdf_temp)
-        except:
-            pass
         
         optimize_image(image_path, max_width=2500)
         add_timestamp_to_image(image_path)
         add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا")
-        return True, f"✅ تم إنشاء الصورة"
+        return True, "✅ تم تحويل التقرير اليومي إلى صورة بنجاح!"
     except Exception as e:
-        return False, f"❌ خطأ: {e}"
-
-
-def fetch_excel_from_network():
-    # إذا كنا على السحابة، تخطَّ مسار الشبكة واستخدم الملف المحلي مباشرة
-    if not os.path.exists(NETWORK_EXCEL_PATH):
-        if os.path.exists(LOCAL_EXCEL_PATH):
-            return True, "✅ تم استخدام ملف الإكسيل المرفوع مسبقاً في المستودع."
-        return False, f"❌ لا يمكن الوصول للمسار الشبكي، والملف المحلي غير موجود."
-    
-    try:
-        if os.path.exists(LOCAL_EXCEL_PATH):
-            try:
-                os.remove(LOCAL_EXCEL_PATH)
-            except Exception:
-                pass
-        
-        shutil.copy2(NETWORK_EXCEL_PATH, LOCAL_EXCEL_PATH)
-        size_kb = os.path.getsize(LOCAL_EXCEL_PATH) / 1024
-        mtime = datetime.fromtimestamp(os.path.getmtime(NETWORK_EXCEL_PATH))
-        return True, f"✅ تم استحضار الملف من الشبكة ({size_kb:.1f} KB) - آخر تعديل: {mtime.strftime('%Y-%m-%d %H:%M')}"
-    except PermissionError:
-        return False, "❌ لا توجد صلاحيات لقراءة الملف من الشبكة"
-    except Exception as e:
-        return False, f"❌ خطأ أثناء النسخ من الشبكة: {e}"
-
-
-def convert_excel_to_image():
-    ok, msg = fetch_excel_from_network()
-    if not ok:
-        return False, msg
-    
-    if not os.path.exists(LOCAL_EXCEL_PATH):
-        return False, f"❌ {LOCAL_EXCEL_PATH} غير موجود"
-    
-    return excel_to_image(LOCAL_EXCEL_PATH, LOCAL_IMAGE_PATH, scale=3, sheet_name=SHEET_NAME)
+        return False, f"❌ خطأ أثناء تحويل الـ PDF: {e}"
 
 
 # ═══════════════════════════════════════════════════════════
@@ -212,11 +143,11 @@ def convert_excel_to_image():
 DATE_COL = ' اليوم'
 
 VALUE_COLS = {
-    '(S/S TOT) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},   # أصفر
-    '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},   # أخضر فاتح
-    '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},   # أزرق
-    '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},   # أحمر وردي
-    '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'}, # أبيض (تمت إضافته)
+    '(S/S TOT) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},
+    '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
+    '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
+    '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
+    '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'},
 }
 
 
@@ -537,7 +468,7 @@ with tab1:
     ">
         <span style="color: #4A90D9; font-size: 16px; font-weight: bold;">📡 المصدر:</span>
         <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">
-            {LOCAL_EXCEL_PATH}
+            {PDF_FILE_PATH}
         </code>
     </div>
     """, unsafe_allow_html=True)
@@ -547,19 +478,21 @@ with tab1:
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
-            with st.spinner('⏳ جاري استحضار الملف من الشبكة والتحويل...'):
-                ok, msg = convert_excel_to_image()
-                if ok:
-                    st.cache_data.clear()
-                    st.success(msg)
-                    st.rerun()
+            with st.spinner('⏳ جاري تحويل الـ PDF إلى صورة...'):
+                if not os.path.exists(PDF_FILE_PATH):
+                    st.error(f"❌ لم يتم العثور على الملف {PDF_FILE_PATH} في المستودع!")
                 else:
-                    st.error(msg)
+                    ok, msg = convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+                    if ok:
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
     
     with col2:
         if os.path.exists(LOCAL_IMAGE_PATH):
             mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
-            st.info(f"📅 آخر تحديث: {mtime.strftime('%Y-%m-%d %H:%M')}")
+            st.info(f"📅 آخر تحديث للصورة: {mtime.strftime('%Y-%m-%d %H:%M')}")
     
     st.markdown("---")
     
@@ -576,12 +509,11 @@ with tab1:
                 width="stretch"
             )
     else:
-        st.warning("⏳ الصورة غير موجودة. اضغط زر إعادة التوليد (ملاحظة: قد لا تعمل على السحابة لأنها تتطلب Excel مثبت).")
+        st.warning("⏳ الصورة غير موجودة. اضغط زر إعادة التوليد لإنشائها من ملف الـ PDF.")
 
     st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
 
-    # الآن سيقرأ الملف من المستودع مباشرة
     df_tank, load_info = load_tank_data(MAINJOB_PATH, MAINJOB_SHEETS)
 
     if df_tank is None or df_tank.empty:
