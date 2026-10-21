@@ -72,7 +72,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (إخفاء الشريط الأصلي)
+# 🎨 CSS العام (إخفاء الشريط و Manage app)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -80,6 +80,10 @@ st.markdown("""
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
+    
+    /* 🛑 إخفاء زر Manage app */
+    [data-testid="manage-app-button"] { display: none !important; }
+    
     footer { display: none !important; }
     
     html, body {
