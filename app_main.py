@@ -32,7 +32,6 @@ if not st.session_state.logged_in:
     st.markdown("""
     <style>
         section[data-testid="stSidebar"] { display: none !important; }
-        /* إخفاء الشريط في صفحة تسجيل الدخول فقط */
         header[data-testid="stHeader"] { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -77,16 +76,13 @@ if not st.session_state.logged_in:
 
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (تعديل: إظهار شريط الأدوات فوق الخريطة)
+# 🎨 CSS العام (إظهار الشريط وإخفاء أيقونة GitHub)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     section[data-testid="stSidebar"] { display: none !important; }
     
-    /* 
-       تم إزالة إخفاء الهيدر هنا، وجعله شفافاً ليظهر فوق الخريطة 
-       كما طلبت في الصورة تماماً
-    */
+    /* إظهار شريط الأدوات العلوي فوق الخريطة */
     header[data-testid="stHeader"] {
         display: block !important;
         background: transparent !important;
@@ -101,6 +97,11 @@ st.markdown("""
         margin-top: 10px !important;
         margin-right: 15px !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+    }
+
+    /* 🛑 إخفاء أيقونة GitHub فقط */
+    [data-testid="stToolbar"] a[href*="github.com"] {
+        display: none !important;
     }
     
     [data-testid="collapsedControl"] { display: none !important; }
