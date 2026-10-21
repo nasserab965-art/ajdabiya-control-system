@@ -63,6 +63,7 @@ VALUE_COLS = {
     '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
     '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
     '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
+    '(RES. LEVEL) AJD': {'label': 'مستوى المياه بخزان اجدابيا م.ف.م.س.ب', 'color': '#FF6B6B'},
 }
 
 
