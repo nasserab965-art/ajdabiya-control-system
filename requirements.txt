@@ -10,3 +10,4 @@ shapely
 pyproj
 folium
 streamlit-folium
+PyMuPDF
