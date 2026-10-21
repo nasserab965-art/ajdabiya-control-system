@@ -181,13 +181,17 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
     )
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 شريط الأدوات المخصص (بدون GitHub) - HTML
+# 🎨 شريط الأدوات المخصص (بدون GitHub وبدون القلم)
 # ═══════════════════════════════════════════════════════════
 toolbar_html = """
 <div class="custom-toolbar">
-    <a href="https://github.com/nasserab965-art/ajdabiya-control-system/edit/main/app_main.py" target="_blank" title="تعديل الصفحة">✏️</a>
+    <!-- النجمة -->
     <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">☆</a>
+    
+    <!-- المشاركة -->
     <span title="مشاركة الرابط" onclick="navigator.clipboard.writeText(window.location.href); alert('تم نسخ الرابط بنجاح!')">🔗</span>
+
+    <!-- النقاط الثلاث -->
     <span title="القائمة" style="letter-spacing: 2px; font-size: 24px; margin-left: 5px;">⋮</span>
 </div>
 """
