@@ -10,8 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import streamlit as st
 import io
 import shutil
-import base64
-import requests
 from datetime import datetime, date
 from PIL import Image, ImageDraw, ImageFont
 import cv2
@@ -21,7 +19,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 
-# الآن يمكنك استيراد الملف المشترك بأمان
+# الآن يمكنك استيراد الملف المشترك بأمان (الخط المتعرج هنا مجرد تنبيه من المحرر)
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
 # إعداد الصفحة
@@ -36,7 +34,12 @@ apply_common_css()
 # ═══════════════════════════════════════════════════════════
 # إعدادات
 # ═══════════════════════════════════════════════════════════
-MAINJOB_PATH = 'mainjob.xlsx'
+NETWORK_EXCEL_PATH = r'\\CTRL-ROOM\ctsh\DAILY_REP.xlsx'
+LOCAL_EXCEL_PATH = 'Daily_rep.xlsx'
+LOCAL_IMAGE_PATH = 'Daily_rep.png'
+SHEET_NAME = None
+
+MAINJOB_PATH = r'E:\firstpy\mainjob.xlsx'
 
 MAINJOB_SHEETS = [
     'my_job - 2025',
@@ -49,8 +52,150 @@ MAINJOB_SHEETS = [
 
 MIN_DATE = '2025-01-01'
 
-# رابط ملف الـ PDF في مستودعك (تأكد من اسم المستخدم الصحيح)
-PDF_URL = "https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/Daily_rep.pdf"
+
+# ═══════════════════════════════════════════════════════════
+# دوال التحويل
+# ═══════════════════════════════════════════════════════════
+def optimize_image(image_path, max_width=2500):
+    try:
+        img = Image.open(image_path)
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_size = (max_width, int(img.height * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+        img.save(image_path, optimize=True, quality=92)
+    except Exception:
+        pass
+
+
+def add_timestamp_to_image(image_path):
+    try:
+        img = Image.open(image_path).convert("RGB")
+        draw = ImageDraw.Draw(img)
+        ts = datetime.now().strftime("%Y-%m-%d  %H:%M")
+        x, y = 12, 12
+        try:
+            bbox = draw.textbbox((x, y), ts)
+            draw.rectangle([bbox[0]-4, bbox[1]-4, bbox[2]+4, bbox[3]+4], fill=(255,255,255))
+        except Exception:
+            pass
+        draw.text((x, y), ts, fill=(200, 0, 0))
+        img.save(image_path, optimize=True, quality=92)
+    except Exception:
+        pass
+
+
+def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
+    try:
+        img = Image.open(image_path).convert("RGBA")
+        overlay = Image.new("RGBA", img.size, (0,0,0,0))
+        draw = ImageDraw.Draw(overlay)
+        font_size = max(14, img.width // 60)
+        font = None
+        for fn in ["arial.ttf", "tahoma.ttf", "segoeui.ttf"]:
+            try:
+                font = ImageFont.truetype(fn, font_size)
+                break
+            except Exception:
+                continue
+        if font is None:
+            font = ImageFont.load_default()
+        try:
+            bbox = draw.textbbox((0,0), text, font=font)
+            tw, th = bbox[2]-bbox[0], bbox[3]-bbox[1]
+        except Exception:
+            tw, th = font_size*len(text)//2, font_size
+        margin = 15
+        x = img.width - tw - margin
+        y = img.height - th - margin
+        pad = 6
+        draw.rectangle([x-pad, y-pad, x+tw+pad, y+th+pad], fill=(255,255,255,180))
+        draw.text((x, y), text, fill=(180,0,0,220), font=font)
+        combined = Image.alpha_composite(img, overlay)
+        combined.convert("RGB").save(image_path, optimize=True, quality=92)
+    except Exception:
+        pass
+
+
+def excel_to_image(excel_path, image_path, scale=3, sheet_name=None):
+    try:
+        import xlwings as xw
+        import fitz
+        pdf_temp = os.path.splitext(image_path)[0] + "_temp.pdf"
+        
+        app = xw.App(visible=False, add_book=False)
+        app.display_alerts = False
+        app.screen_updating = False
+        try:
+            wb = app.books.open(os.path.abspath(excel_path))
+            sheet = wb.sheets[sheet_name] if sheet_name else wb.sheets[0]
+            ps = sheet.api.PageSetup
+            ps.Orientation = 2
+            ps.Zoom = False
+            ps.FitToPagesWide = 1
+            ps.FitToPagesTall = 1
+            ps.LeftMargin = 0
+            ps.RightMargin = 0
+            ps.TopMargin = 0
+            ps.BottomMargin = 0
+            ps.CenterHorizontally = True
+            sheet.api.ExportAsFixedFormat(0, os.path.abspath(pdf_temp))
+            wb.close()
+        finally:
+            app.quit()
+        
+        if not os.path.exists(pdf_temp):
+            return False, "❌ فشل تصدير PDF"
+        
+        doc = fitz.open(pdf_temp)
+        page = doc[0]
+        mat = fitz.Matrix(scale, scale)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        pix.save(image_path)
+        doc.close()
+        try:
+            os.remove(pdf_temp)
+        except:
+            pass
+        
+        optimize_image(image_path, max_width=2500)
+        add_timestamp_to_image(image_path)
+        add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا")
+        return True, f"✅ تم إنشاء الصورة"
+    except Exception as e:
+        return False, f"❌ خطأ: {e}"
+
+
+def fetch_excel_from_network():
+    if not os.path.exists(NETWORK_EXCEL_PATH):
+        return False, f"❌ لا يمكن الوصول للمسار الشبكي:\n`{NETWORK_EXCEL_PATH}`"
+    
+    try:
+        if os.path.exists(LOCAL_EXCEL_PATH):
+            try:
+                os.remove(LOCAL_EXCEL_PATH)
+            except Exception:
+                pass
+        
+        shutil.copy2(NETWORK_EXCEL_PATH, LOCAL_EXCEL_PATH)
+        size_kb = os.path.getsize(LOCAL_EXCEL_PATH) / 1024
+        mtime = datetime.fromtimestamp(os.path.getmtime(NETWORK_EXCEL_PATH))
+        return True, f"✅ تم استحضار الملف من الشبكة ({size_kb:.1f} KB) - آخر تعديل: {mtime.strftime('%Y-%m-%d %H:%M')}"
+    except PermissionError:
+        return False, "❌ لا توجد صلاحيات لقراءة الملف من الشبكة"
+    except Exception as e:
+        return False, f"❌ خطأ أثناء النسخ من الشبكة: {e}"
+
+
+def convert_excel_to_image():
+    ok, msg = fetch_excel_from_network()
+    if not ok:
+        return False, msg
+    
+    if not os.path.exists(LOCAL_EXCEL_PATH):
+        return False, f"❌ {LOCAL_EXCEL_PATH} غير موجود"
+    
+    return excel_to_image(LOCAL_EXCEL_PATH, LOCAL_IMAGE_PATH, scale=3, sheet_name=SHEET_NAME)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -63,7 +208,6 @@ VALUE_COLS = {
     '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
     '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
     '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
-    '(RES. LEVEL) AJD': {'label': 'مستوى المياه بخزان اجدابيا (م.ف.م.س.ب)', 'color': '#FF6000'},
 }
 
 
@@ -158,7 +302,7 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
                 ))
     
     barmode = 'group' if chart_type == 'bar' else None
-    title_text = f'📊قراءات الخطوط الأربعة لخزان التجميع والموازنة - اجدابيا - {year_label}' if year_label else '📊 قراءات الخطوط'
+    title_text = f'📊 قراءات الخطوط - {year_label}' if year_label else '📊 قراءات الخطوط'
     
     fig.update_layout(
         title=dict(
@@ -200,14 +344,32 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
 
 
 def render_tank_stats(df):
-    stat_cols = st.columns(4)
-    for idx, (col, meta) in enumerate(VALUE_COLS.items()):
+    # ─────────────────────────────────────────────────────
+    # 1) جمع العناصر الصالحة فقط (تجاهل الأعمدة المفقودة أو الفارغة)
+    # ─────────────────────────────────────────────────────
+    valid_items = []
+    for col, meta in VALUE_COLS.items():
         if col not in df.columns:
             continue
         series = df[col].dropna()
         if series.empty:
             continue
-        
+        valid_items.append((col, meta, series))
+
+    # إذا لم توجد أي بيانات صالحة
+    if not valid_items:
+        st.info("ℹ️ لا توجد بيانات كافية لعرض الإحصائيات في الفترة المحددة.")
+        return
+
+    # ─────────────────────────────────────────────────────
+    # 2) إنشاء أعمدة بعدد العناصر الصالحة فقط (ديناميكياً)
+    # ─────────────────────────────────────────────────────
+    stat_cols = st.columns(len(valid_items))
+
+    # ─────────────────────────────────────────────────────
+    # 3) رسم البطاقات
+    # ─────────────────────────────────────────────────────
+    for idx, (col, meta, series) in enumerate(valid_items):
         last_val = series.iloc[-1]
         prev_val = series.iloc[-2] if len(series) > 1 else last_val
         delta = last_val - prev_val
@@ -309,37 +471,21 @@ with tab1:
         text-align: center;
     ">
         <h1 style="
-            color: #FFFFFF; 
+            color: #F9CA24; 
             font-size: 48px; 
             margin: 0 0 25px 0;
             text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
             font-weight: bold;
             font-family: Arial, sans-serif;
         ">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
-         <h2 style="
-            color: #F9CA24; 
-            font-size: 48px; 
-            margin: 0 0 25px 0;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        ">الإدارة العامة للإتصالات والتحكم وتقنية المعلومات </h2> 
-        <h3 style="
-            color: #F9CA24; 
-            font-size: 48px; 
-            margin: 0 0 25px 0;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        "> إدارة الإتصالات والتحكم  </h3> 
-        <h4 style="
+        <h2 style="
             color: #FFFFFF; 
             font-size: 38px; 
             margin: 0 0 35px 0;
             text-shadow: 1px 1px 5px rgba(0,0,0,0.5);
             font-weight: bold;
             font-family: Arial, sans-serif;
-        ">📍 غرفة تحكم اجدابيا</h4>
+        ">📍 غرفة تحكم اجدابيا</h2>
         <p style="
             font-size: 28px;
             color: #E8F4FD;
@@ -380,48 +526,60 @@ with tab1:
     </div>
     """, unsafe_allow_html=True)
 
-    #st.markdown("### 📋 التقرير اليومي - Daily_rep")
-    
+    st.markdown(f"""
+    <div style="
+        background: rgba(74, 144, 217, 0.1);
+        border-right: 4px solid #4A90D9;
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin-bottom: 15px;
+        direction: rtl;
+        font-family: Arial, sans-serif;
+    ">
+        <span style="color: #4A90D9; font-size: 16px; font-weight: bold;">📡 المصدر:</span>
+        <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">
+            {NETWORK_EXCEL_PATH}
+        </code>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    # محاولة جلب الملف من GitHub
-    try:
-        # إضافة وقت للرابط لتجاوز الكاش وجلب أحدث نسخة دائماً
-        response = requests.get(f"{PDF_URL}?t={datetime.now().timestamp()}")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
+            with st.spinner('⏳ جاري استحضار الملف من الشبكة والتحويل...'):
+                ok, msg = convert_excel_to_image()
+                if ok:
+                    st.cache_data.clear()
+                    st.success(msg)
+                    st.rerun()
+                else:
+                    st.error(msg)
+    
+    with col2:
+        if os.path.exists(LOCAL_IMAGE_PATH):
+            mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
+            st.info(f"📅 آخر تحديث: {mtime.strftime('%Y-%m-%d %H:%M')}")
+    
+    st.markdown("---")
+    
+    if os.path.exists(LOCAL_IMAGE_PATH):
+        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
+        st.image(LOCAL_IMAGE_PATH, width=img_width)
         
-        if response.status_code == 200:
-            # حفظ الملف مؤقتاً لعرضه باستخدام مكون Streamlit
-            temp_pdf_path = "temp_daily_rep.pdf"
-            with open(temp_pdf_path, "wb") as f:
-                f.write(response.content)
-            
-            # استخدام مكون Streamlit لعرض الـ PDF (أكثر أماناً ولا يحظره المتصفح)
-            st.pdf(temp_pdf_path, height=850)
-            
-            # إضافة زر للتحميل كخيار إضافي للمستخدم
+        with open(LOCAL_IMAGE_PATH, "rb") as f:
             st.download_button(
-                label="📥 تحميل التقرير كملف PDF",
-                data=response.content,
-                file_name=f'Daily_rep_{datetime.now().strftime("%Y-%m-%d")}.pdf',
-                mime='application/pdf',
-                type="primary"
+                "🖼️ تحميل الصورة PNG",
+                data=f.read(),
+                file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
+                mime='image/png',
+                width="stretch"
             )
-            
-            # عرض وقت آخر تحديث
-            st.caption("🔄 تم جلب أحدث نسخة من السحابة (GitHub).")
-            
-            # تنظيف الملف المؤقت
-            import os
-            if os.path.exists(temp_pdf_path):
-                os.remove(temp_pdf_path)
+    else:
+        st.warning("⏳ جاري تحضير التقرير... اضغط زر إعادة التوليد")
 
-        elif response.status_code == 404:
-            st.warning("⏳ لم يتم العثور على التقرير في المستودع بعد. يرجى التأكد من رفع الملف.")
-        else:
-            st.error(f"❌ حدث خطأ أثناء الاتصال بالخادم. كود الخطأ: {response.status_code}")
-
-    except Exception as e:
-        st.error(f"❌ حدث خطأ أثناء محاولة عرض التقرير: {e}")
+    st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
 
     df_tank, load_info = load_tank_data(MAINJOB_PATH, MAINJOB_SHEETS)
@@ -452,9 +610,14 @@ with tab1:
             min_date = df_tank[DATE_COL].min().date()
             max_date = df_tank[DATE_COL].max().date()
             
+            # القيمة الافتراضية: آخر 30 يوماً فقط (لتخفيف الحمل على المتصفح)
+            default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
+            if isinstance(default_start, pd.Timestamp):
+                default_start = default_start.date()
+            
             date_range = st.date_input(
                 "📅 الفترة:",
-                value=(min_date, max_date),
+                value=(default_start, max_date),
                 min_value=min_date,
                 max_value=max_date,
                 key="date_range_filter",
