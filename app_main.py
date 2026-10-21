@@ -1,5 +1,5 @@
 """
-🏠 الصفحة الرئيسية — حل نهائي مع st.button
+🏠 الصفحة الرئيسية — حل نهائي مخصص
 """
 import streamlit as st
 import os
@@ -76,41 +76,15 @@ if not st.session_state.logged_in:
 
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (شريط شفاف 100% + إخفاء GitHub بطريقة مضمونة)
+# 🎨 CSS العام (إخفاء الشريط الأصلي تماماً)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     section[data-testid="stSidebar"] { display: none !important; }
     
-    /* إظهار الهيدر وجعله شفافاً */
-    header[data-testid="stHeader"] {
-        display: block !important;
-        background: transparent !important;
-        z-index: 9999 !important;
-    }
-
-    /* جعل خلفية شريط الأدوات شفافة بالكامل */
-    [data-testid="stToolbar"] {
-        display: flex !important;
-        background: transparent !important; 
-        padding: 5px 10px !important;
-        margin-top: 10px !important;
-        margin-right: 15px !important;
-        box-shadow: none !important;
-    }
-
-    /* تغيير لون الأيقونات إلى الأبيض وإضافة ظل ليظهر فوق الخريطة */
-    [data-testid="stToolbar"] * {
-        color: white !important;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.8) !important;
-        fill: white !important;
-    }
-
-    /* 🛑 إخفاء أيقونة GitHub بشكل قاطع (الأيقونة الثانية في القائمة) */
-    [data-testid="stToolbar"] > div:nth-child(2) {
-        display: none !important;
-    }
-    
+    /* إخفاء الشريط الأصلي تماماً لتجنب أي مشاكل */
+    header[data-testid="stHeader"] { display: none !important; }
+    [data-testid="stToolbar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
     footer { display: none !important; }
     
@@ -164,6 +138,42 @@ st.markdown("""
         border: none;
         display: block;
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       شريط الأدوات المخصص (بديل Streamlit) فوق الخريطة
+       ═══════════════════════════════════════════════════════════ */
+    .custom-toolbar {
+        position: fixed;
+        top: 15px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        background: rgba(0, 0, 0, 0.4); /* خلفية داكنة شفافة لتوضيح الأيقونات البيضاء */
+        padding: 8px 18px;
+        border-radius: 30px;
+        backdrop-filter: blur(5px);
+        direction: ltr;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    
+    .custom-toolbar a, .custom-toolbar span {
+        color: #FFFFFF !important;
+        text-decoration: none;
+        font-size: 20px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: normal;
+    }
+    
+    .custom-toolbar a:hover, .custom-toolbar span:hover {
+        color: #F9CA24 !important; /* لون أصفر عند التمرير */
+        transform: scale(1.15);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -178,6 +188,33 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
         f'<img src="data:image/jpeg;base64,{img_data}" class="map-bg"/>',
         unsafe_allow_html=True
     )
+
+# ═══════════════════════════════════════════════════════════
+# 🎨 شريط الأدوات المخصص (بدون GitHub)
+# ═══════════════════════════════════════════════════════════
+st.markdown("""
+<div class="custom-toolbar">
+    <!-- القلم (تعديل) -->
+    <a href="https://github.com/nasserab965-art/ajdabiya-control-system/edit/main/app_main.py" target="_blank" title="تعديل الصفحة">
+        ✏️
+    </a>
+    
+    <!-- النجمة -->
+    <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">
+        ☆
+    </a>
+    
+    <!-- المشاركة -->
+    <span title="مشاركة الرابط" onclick="navigator.clipboard.writeText(window.location.href); alert('تم نسخ الرابط بنجاح!')">
+        🔗
+    </span>
+
+    <!-- النقاط الثلاث -->
+    <span title="القائمة" style="letter-spacing: 2px; font-size: 24px; margin-left: 5px;">
+        ⋮
+    </span>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════
