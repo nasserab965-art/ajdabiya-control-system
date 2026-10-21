@@ -76,31 +76,38 @@ if not st.session_state.logged_in:
 
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (إظهار الشريط وإخفاء أيقونة GitHub)
+# 🎨 CSS العام (شريط شفاف 100% + إخفاء GitHub بطريقة مضمونة)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     section[data-testid="stSidebar"] { display: none !important; }
     
-    /* إظهار شريط الأدوات العلوي فوق الخريطة */
+    /* إظهار الهيدر وجعله شفافاً */
     header[data-testid="stHeader"] {
         display: block !important;
         background: transparent !important;
         z-index: 9999 !important;
     }
 
+    /* جعل خلفية شريط الأدوات شفافة بالكامل */
     [data-testid="stToolbar"] {
         display: flex !important;
-        background: rgba(255, 255, 255, 0.9) !important;
-        border-radius: 8px !important;
+        background: transparent !important; 
         padding: 5px 10px !important;
         margin-top: 10px !important;
         margin-right: 15px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        box-shadow: none !important;
     }
 
-    /* 🛑 إخفاء أيقونة GitHub فقط */
-    [data-testid="stToolbar"] a[href*="github.com"] {
+    /* تغيير لون الأيقونات إلى الأبيض وإضافة ظل ليظهر فوق الخريطة */
+    [data-testid="stToolbar"] * {
+        color: white !important;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.8) !important;
+        fill: white !important;
+    }
+
+    /* 🛑 إخفاء أيقونة GitHub بشكل قاطع (الأيقونة الثانية في القائمة) */
+    [data-testid="stToolbar"] > div:nth-child(2) {
         display: none !important;
     }
     
