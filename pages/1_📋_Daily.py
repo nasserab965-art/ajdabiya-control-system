@@ -212,10 +212,11 @@ def convert_excel_to_image():
 DATE_COL = ' اليوم'
 
 VALUE_COLS = {
-    '(S/S TOT) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},
-    '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
-    '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
-    '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
+    '(S/S TOT) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},   # أصفر
+    '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},   # أخضر فاتح
+    '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},   # أزرق
+    '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},   # أحمر وردي
+    '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'}, # أبيض (تمت إضافته)
 }
 
 
