@@ -344,32 +344,14 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
 
 
 def render_tank_stats(df):
-    # ─────────────────────────────────────────────────────
-    # 1) جمع العناصر الصالحة فقط (تجاهل الأعمدة المفقودة أو الفارغة)
-    # ─────────────────────────────────────────────────────
-    valid_items = []
-    for col, meta in VALUE_COLS.items():
+    stat_cols = st.columns(4)
+    for idx, (col, meta) in enumerate(VALUE_COLS.items()):
         if col not in df.columns:
             continue
         series = df[col].dropna()
         if series.empty:
             continue
-        valid_items.append((col, meta, series))
-
-    # إذا لم توجد أي بيانات صالحة
-    if not valid_items:
-        st.info("ℹ️ لا توجد بيانات كافية لعرض الإحصائيات في الفترة المحددة.")
-        return
-
-    # ─────────────────────────────────────────────────────
-    # 2) إنشاء أعمدة بعدد العناصر الصالحة فقط (ديناميكياً)
-    # ─────────────────────────────────────────────────────
-    stat_cols = st.columns(len(valid_items))
-
-    # ─────────────────────────────────────────────────────
-    # 3) رسم البطاقات
-    # ─────────────────────────────────────────────────────
-    for idx, (col, meta, series) in enumerate(valid_items):
+        
         last_val = series.iloc[-1]
         prev_val = series.iloc[-2] if len(series) > 1 else last_val
         delta = last_val - prev_val
@@ -610,14 +592,9 @@ with tab1:
             min_date = df_tank[DATE_COL].min().date()
             max_date = df_tank[DATE_COL].max().date()
             
-            # القيمة الافتراضية: آخر 30 يوماً فقط (لتخفيف الحمل على المتصفح)
-            default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
-            if isinstance(default_start, pd.Timestamp):
-                default_start = default_start.date()
-            
             date_range = st.date_input(
                 "📅 الفترة:",
-                value=(default_start, max_date),
+                value=(min_date, max_date),
                 min_value=min_date,
                 max_value=max_date,
                 key="date_range_filter",
