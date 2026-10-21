@@ -157,7 +157,7 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
                 ))
     
     barmode = 'group' if chart_type == 'bar' else None
-    title_text = f'📊 قراءات الخطوط - {year_label}' if year_label else '📊 قراءات الخطوط'
+    title_text = f'📊قراءات الخطوط الأربعة لخزان التجميع والموازنة - اجدابيا - {year_label}' if year_label else '📊 قراءات الخطوط'
     
     fig.update_layout(
         title=dict(
