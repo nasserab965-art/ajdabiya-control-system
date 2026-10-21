@@ -32,6 +32,7 @@ if not st.session_state.logged_in:
     st.markdown("""
     <style>
         section[data-testid="stSidebar"] { display: none !important; }
+        /* إخفاء الشريط في صفحة تسجيل الدخول فقط */
         header[data-testid="stHeader"] { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -76,13 +77,32 @@ if not st.session_state.logged_in:
 
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام
+# 🎨 CSS العام (تعديل: إظهار شريط الأدوات فوق الخريطة)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     section[data-testid="stSidebar"] { display: none !important; }
-    header[data-testid="stHeader"] { display: none !important; }
-    [data-testid="stToolbar"] { display: none !important; }
+    
+    /* 
+       تم إزالة إخفاء الهيدر هنا، وجعله شفافاً ليظهر فوق الخريطة 
+       كما طلبت في الصورة تماماً
+    */
+    header[data-testid="stHeader"] {
+        display: block !important;
+        background: transparent !important;
+        z-index: 9999 !important;
+    }
+
+    [data-testid="stToolbar"] {
+        display: flex !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 8px !important;
+        padding: 5px 10px !important;
+        margin-top: 10px !important;
+        margin-right: 15px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+    }
+    
     [data-testid="collapsedControl"] { display: none !important; }
     footer { display: none !important; }
     
@@ -135,10 +155,6 @@ st.markdown("""
         padding: 0;
         border: none;
         display: block;
-    }
-    
-    .header-bar {
-        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
