@@ -423,13 +423,29 @@ with tab1:
             font-family: Arial, sans-serif;
         ">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
         <h2 style="
+            color: #F9CA24; 
+            font-size: 48px; 
+            margin: 0 0 25px 0;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        ">🌟 الإدارة العامة للإتصالات والتحكم وتقنية المعلومات 🌟</h2>
+        <h3 style="
+            color: #F9CA24; 
+            font-size: 48px; 
+            margin: 0 0 25px 0;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        ">إدارة الإتصالات والتحكم</h3>
+        <h4 style="
             color: #FFFFFF; 
             font-size: 38px; 
             margin: 0 0 35px 0;
             text-shadow: 1px 1px 5px rgba(0,0,0,0.5);
             font-weight: bold;
             font-family: Arial, sans-serif;
-        ">📍 غرفة تحكم اجدابيا</h2>
+        ">📍 غرفة تحكم اجدابيا</h4>
         <p style="
             font-size: 28px;
             color: #E8F4FD;
