@@ -18,7 +18,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
-import fitz  # PyMuPDF لتحويل الـ PDF إلى صورة
+import fitz  # PyMuPDF
+import requests # لجلب تاريخ التحديث من GitHub
 
 # الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
@@ -33,11 +34,10 @@ st.set_page_config(
 apply_common_css()
 
 # ═══════════════════════════════════════════════════════════
-# 🛑 إخفاء شريط الأدوات العلوي (Header)
+# 🛑 إخفاء شريط الأدوات العلوي
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-    /* إخفاء شريط الأدوات بالكامل */
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     [data-testid="stDecoration"] { display: none !important; }
@@ -79,7 +79,6 @@ def optimize_image(image_path, max_width=2500):
     except Exception:
         pass
 
-
 def add_timestamp_to_image(image_path):
     try:
         img = Image.open(image_path).convert("RGB")
@@ -95,7 +94,6 @@ def add_timestamp_to_image(image_path):
         img.save(image_path, optimize=True, quality=92)
     except Exception:
         pass
-
 
 def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     try:
@@ -128,7 +126,6 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     except Exception:
         pass
 
-
 def convert_pdf_to_image(pdf_path, image_path, scale=3):
     try:
         doc = fitz.open(pdf_path)
@@ -145,29 +142,40 @@ def convert_pdf_to_image(pdf_path, image_path, scale=3):
     except Exception as e:
         return False, f"❌ خطأ أثناء تحويل الـ PDF: {e}"
 
-
 # ═══════════════════════════════════════════════════════════
-# 🔄 دالة التجديد التلقائي (ذكية)
+# 🔄 دالة التجديد التلقائي الذكية (تعتمد على GitHub)
 # ═══════════════════════════════════════════════════════════
-def check_and_auto_update():
-    """تتحقق مما إذا كان الـ PDF أحدث من الصورة، وإذا كان كذلك تقوم بتحويله تلقائياً"""
-    if not os.path.exists(PDF_FILE_PATH):
-        return False, "❌ لم يتم العثور على ملف الـ PDF."
-    
-    # إذا لم تكن الصورة موجودة، نقوم بإنشائها فوراً
-    if not os.path.exists(LOCAL_IMAGE_PATH):
-        return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+def auto_update_from_github():
+    """تتحقق من تاريخ آخر تحديث لملف الـ PDF على GitHub وتقارنه بالصورة"""
+    try:
+        # 1. جلب تاريخ آخر تعديل لملف الـ PDF من GitHub API
+        url = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/commits?path=Daily_rep.pdf&page=1&per_page=1"
+        response = requests.get(url)
         
-    # مقارنة وقت تعديل الـ PDF بوقت تعديل الصورة
-    pdf_mtime = os.path.getmtime(PDF_FILE_PATH)
-    img_mtime = os.path.getmtime(LOCAL_IMAGE_PATH)
-    
-    # إذا كان الـ PDF أحدث من الصورة (أي تم تحديثه من السكربت)
-    if pdf_mtime > img_mtime:
-        return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
-        
-    return True, ""
-
+        if response.status_code == 200 and len(response.json()) > 0:
+            # استخراج تاريخ آخر Commit لملف الـ PDF
+            last_commit_date_str = response.json()[0]['commit']['committer']['date']
+            from dateutil import parser
+            last_commit_date = parser.parse(last_commit_date_str).replace(tzinfo=None)
+            
+            # 2. الحصول على تاريخ إنشاء الصورة المحلية
+            if os.path.exists(LOCAL_IMAGE_PATH):
+                img_mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
+                
+                # إذا كان التحديث على GitHub أحدث من الصورة المحلية (بفارق دقيقة واحدة على الأقل لتجنب التكرار)
+                if last_commit_date > img_mtime:
+                    return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+            else:
+                # إذا لم تكن الصورة موجودة أصلاً
+                return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+                
+    except Exception as e:
+        print(f"Error checking GitHub: {e}")
+        # في حال فشل الاتصال، نتحقق من الملف المحلي كخطة بديلة
+        if not os.path.exists(LOCAL_IMAGE_PATH) and os.path.exists(PDF_FILE_PATH):
+            return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+            
+    return False, ""
 
 # ═══════════════════════════════════════════════════════════
 # 📊 دوال قراءات الخطوط
@@ -184,7 +192,6 @@ VALUE_COLS = {
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_tank_data(path, sheet_names):
-    # ... (نفس الكود السابق) ...
     if isinstance(sheet_names, str):
         sheet_names = [sheet_names]
 
@@ -195,9 +202,7 @@ def load_tank_data(path, sheet_names):
     for sheet in sheet_names:
         try:
             df = pd.read_excel(path, sheet_name=sheet)
-
-            missing = [c for c in [DATE_COL] + list(VALUE_COLS.keys())
-                       if c not in df.columns]
+            missing = [c for c in [DATE_COL] + list(VALUE_COLS.keys()) if c not in df.columns]
             if missing:
                 info_lines.append(f"⚠️ شيت '{sheet}': أعمدة مفقودة → تم التخطي")
                 continue
@@ -245,7 +250,6 @@ def load_tank_data(path, sheet_names):
     return combined, msg
 
 def plot_tank_data(df, chart_type='lines+markers', year_label=''):
-    # ... (نفس الكود السابق) ...
     fig = go.Figure()
     for col, meta in VALUE_COLS.items():
         if col in df.columns:
@@ -279,7 +283,6 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
     return fig
 
 def render_tank_stats(df):
-    # ... (نفس الكود السابق) ...
     valid_items = []
     for col, meta in VALUE_COLS.items():
         if col not in df.columns: continue
@@ -313,7 +316,7 @@ def render_tank_stats(df):
             """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 🏠 زر العودة للرئيسية (أعلى الصفحة)
+# 🏠 زر العودة للرئيسية
 # ═══════════════════════════════════════════════════════════
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
@@ -330,7 +333,6 @@ st.title("📋 التقرير اليومي + 📹 المباشر")
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
 with tab1:
-    # ... (نفس كود الـ HTML للترويسة) ...
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%); border-radius: 22px; padding: 45px 50px; margin: 20px 0 30px 0; border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08); direction: rtl; text-align: center;">
         <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
@@ -381,10 +383,10 @@ with tab1:
     st.markdown("---")
     
     # ═══════════════════════════════════════════════════════════
-    # 🌟 التجديد التلقائي هنا 🌟
+    # 🌟 التجديد التلقائي هنا (يعتمد على GitHub) 🌟
     # ═══════════════════════════════════════════════════════════
     with st.spinner('🔄 جاري التحقق من وجود تحديثات للتقرير...'):
-        check_and_auto_update()
+        auto_update_from_github()
     
     if os.path.exists(LOCAL_IMAGE_PATH):
         img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
