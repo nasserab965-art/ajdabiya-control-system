@@ -3,6 +3,7 @@
 """
 import sys
 import os
+import glob
 
 # ⚠️ يجب أن يكون هذا السطر في البداية وقبل أي استيراد آخر
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,7 +20,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import fitz  # PyMuPDF
-import requests # لجلب تاريخ التحديث من GitHub
+import requests
+from dateutil import parser
 
 # الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
@@ -50,7 +52,6 @@ st.markdown("""
 # إعدادات
 # ═══════════════════════════════════════════════════════════
 PDF_FILE_PATH = "Daily_rep.pdf"
-LOCAL_IMAGE_PATH = 'Daily_rep.png'
 SHEET_NAME = None
 MAINJOB_PATH = 'mainjob.xlsx'
 
@@ -126,56 +127,52 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     except Exception:
         pass
 
-def convert_pdf_to_image(pdf_path, image_path, scale=3):
+def convert_pdf_to_image(pdf_path, scale=3):
+    """تحويل الـ PDF إلى صورة جديدة باسم فريد وإرجاع اسم الملف"""
+    # إنشاء اسم فريد للصورة يعتمد على الوقت الحالي لتجنب الكاش
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    new_image_path = f'Daily_rep_{timestamp_str}.png'
+    
     try:
         doc = fitz.open(pdf_path)
         page = doc[0]
         mat = fitz.Matrix(scale, scale)
         pix = page.get_pixmap(matrix=mat, alpha=False)
-        pix.save(image_path)
+        pix.save(new_image_path)
         doc.close()
         
-        optimize_image(image_path, max_width=2500)
-        add_timestamp_to_image(image_path)
-        add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا")
-        return True, "✅ تم تحويل التقرير اليومي إلى صورة بنجاح!"
+        optimize_image(new_image_path, max_width=2500)
+        add_timestamp_to_image(new_image_path)
+        add_watermark_to_image(new_image_path, text="غرفة تحكم اجدابيا")
+        
+        # حذف الصور القديمة لتوفير المساحة
+        for old_img in glob.glob('Daily_rep_*.png'):
+            if old_img != new_image_path:
+                try:
+                    os.remove(old_img)
+                except:
+                    pass
+                    
+        return True, "✅ تم تحويل التقرير اليومي إلى صورة بنجاح!", new_image_path
     except Exception as e:
-        return False, f"❌ خطأ أثناء تحويل الـ PDF: {e}"
+        return False, f"❌ خطأ أثناء تحويل الـ PDF: {e}", None
+
 
 # ═══════════════════════════════════════════════════════════
-# 🔄 دالة التجديد التلقائي الذكية (تعتمد على GitHub)
+# 🔄 دالة التجديد التلقائي
 # ═══════════════════════════════════════════════════════════
-def auto_update_from_github():
-    """تتحقق من تاريخ آخر تحديث لملف الـ PDF على GitHub وتقارنه بالصورة"""
+@st.cache_data(ttl=60, show_spinner=False)
+def get_latest_pdf_commit_date():
+    """جلب تاريخ آخر تحديث لملف الـ PDF من GitHub"""
     try:
-        # 1. جلب تاريخ آخر تعديل لملف الـ PDF من GitHub API
         url = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/commits?path=Daily_rep.pdf&page=1&per_page=1"
         response = requests.get(url)
-        
         if response.status_code == 200 and len(response.json()) > 0:
-            # استخراج تاريخ آخر Commit لملف الـ PDF
             last_commit_date_str = response.json()[0]['commit']['committer']['date']
-            from dateutil import parser
-            last_commit_date = parser.parse(last_commit_date_str).replace(tzinfo=None)
-            
-            # 2. الحصول على تاريخ إنشاء الصورة المحلية
-            if os.path.exists(LOCAL_IMAGE_PATH):
-                img_mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
-                
-                # إذا كان التحديث على GitHub أحدث من الصورة المحلية (بفارق دقيقة واحدة على الأقل لتجنب التكرار)
-                if last_commit_date > img_mtime:
-                    return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
-            else:
-                # إذا لم تكن الصورة موجودة أصلاً
-                return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
-                
-    except Exception as e:
-        print(f"Error checking GitHub: {e}")
-        # في حال فشل الاتصال، نتحقق من الملف المحلي كخطة بديلة
-        if not os.path.exists(LOCAL_IMAGE_PATH) and os.path.exists(PDF_FILE_PATH):
-            return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
-            
-    return False, ""
+            return parser.parse(last_commit_date_str).replace(tzinfo=None)
+    except Exception:
+        pass
+    return None
 
 # ═══════════════════════════════════════════════════════════
 # 📊 دوال قراءات الخطوط
@@ -364,38 +361,80 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
+    # ═══════════════════════════════════════════════════════════
+    # 🌟 التجديد التلقائي (الحل النهائي) 🌟
+    # ═══════════════════════════════════════════════════════════
+    # جلب تاريخ آخر تحديث من GitHub
+    last_commit_date = get_latest_pdf_commit_date()
+    
+    # البحث عن أحدث صورة محلية متاحة
+    existing_images = sorted(glob.glob('Daily_rep_*.png'), reverse=True)
+    current_image_path = existing_images[0] if existing_images else None
+    
+    trigger_conversion = False
+    
+    if not current_image_path:
+        trigger_conversion = True # لا توجد صورة أساساً
+    elif last_commit_date:
+        # استخراج التاريخ من اسم الصورة (لأننا نسميها Daily_rep_20231025_153000.png)
+        try:
+            img_time_str = current_image_path.replace('Daily_rep_', '').replace('.png', '')
+            img_time = datetime.strptime(img_time_str, "%Y%m%d_%H%M%S")
+            
+            # إذا كان تاريخ الـ PDF في GitHub أحدث من الصورة، نحوله
+            if last_commit_date > img_time:
+                trigger_conversion = True
+        except:
+            trigger_conversion = True
+
+    # تنفيذ التحويل إذا لزم الأمر
+    if trigger_conversion and os.path.exists(PDF_FILE_PATH):
+        with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري تجهيز التقرير...'):
+            success, msg, new_img = convert_pdf_to_image(PDF_FILE_PATH)
+            if success:
+                current_image_path = new_img
+                st.toast(msg, icon="✅")
+            else:
+                st.error(msg)
+                
+    # أزرار التحكم
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
             with st.spinner('⏳ جاري تحويل الـ PDF إلى صورة...'):
-                ok, msg = convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
-                if ok:
-                    st.success(msg)
-                    st.rerun()
+                if os.path.exists(PDF_FILE_PATH):
+                    success, msg, new_img = convert_pdf_to_image(PDF_FILE_PATH)
+                    if success:
+                        current_image_path = new_img
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
                 else:
-                    st.error(msg)
+                    st.error(f"❌ لم يتم العثور على الملف {PDF_FILE_PATH}")
     
     with col2:
-        if os.path.exists(LOCAL_IMAGE_PATH):
-            mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
-            st.info(f"📅 آخر تحديث للصورة: {mtime.strftime('%Y-%m-%d %H:%M')}")
+        if current_image_path and os.path.exists(current_image_path):
+            # استخراج التاريخ من اسم الملف
+            try:
+                img_time_str = current_image_path.replace('Daily_rep_', '').replace('.png', '')
+                img_time = datetime.strptime(img_time_str, "%Y%m%d_%H%M%S")
+                st.info(f"📅 آخر تحديث للصورة: {img_time.strftime('%Y-%m-%d %H:%M')}")
+            except:
+                st.info("📅 الصورة جاهزة")
     
     st.markdown("---")
     
-    # ═══════════════════════════════════════════════════════════
-    # 🌟 التجديد التلقائي هنا (يعتمد على GitHub) 🌟
-    # ═══════════════════════════════════════════════════════════
-    with st.spinner('🔄 جاري التحقق من وجود تحديثات للتقرير...'):
-        auto_update_from_github()
-    
-    if os.path.exists(LOCAL_IMAGE_PATH):
+    # عرض الصورة
+    if current_image_path and os.path.exists(current_image_path):
         img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
-        st.image(LOCAL_IMAGE_PATH, width=img_width)
+        # استخدام مسار الصورة الفريد لمنع المتصفح من الكاش
+        st.image(current_image_path, width=img_width)
         
-        with open(LOCAL_IMAGE_PATH, "rb") as f:
+        with open(current_image_path, "rb") as f:
             st.download_button(
                 "🖼️ تحميل الصورة PNG", data=f.read(),
-                file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
+                file_name=current_image_path,
                 mime='image/png', width="stretch"
             )
     else:
