@@ -49,12 +49,9 @@ st.markdown("""
 # ═══════════════════════════════════════════════════════════
 # إعدادات
 # ═══════════════════════════════════════════════════════════
-# مسار ملف الـ PDF المرفوع في المستودع بواسطة auto_uploader.py
 PDF_FILE_PATH = "Daily_rep.pdf"
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
 SHEET_NAME = None
-
-# مسار ملف الإكسيل الرئيسي (النسبي ليعمل على السحابة)
 MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
@@ -67,7 +64,6 @@ MAINJOB_SHEETS = [
 ]
 
 MIN_DATE = '2025-01-01'
-
 
 # ═══════════════════════════════════════════════════════════
 # دوال التحويل
@@ -134,7 +130,6 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
 
 
 def convert_pdf_to_image(pdf_path, image_path, scale=3):
-    """دالة لتحويل ملف PDF (الذي رفعه auto_uploader) إلى صورة PNG"""
     try:
         doc = fitz.open(pdf_path)
         page = doc[0]
@@ -152,7 +147,30 @@ def convert_pdf_to_image(pdf_path, image_path, scale=3):
 
 
 # ═══════════════════════════════════════════════════════════
-# 📊 دوال قراءات الخطوط - متعدد السنوات
+# 🔄 دالة التجديد التلقائي (ذكية)
+# ═══════════════════════════════════════════════════════════
+def check_and_auto_update():
+    """تتحقق مما إذا كان الـ PDF أحدث من الصورة، وإذا كان كذلك تقوم بتحويله تلقائياً"""
+    if not os.path.exists(PDF_FILE_PATH):
+        return False, "❌ لم يتم العثور على ملف الـ PDF."
+    
+    # إذا لم تكن الصورة موجودة، نقوم بإنشائها فوراً
+    if not os.path.exists(LOCAL_IMAGE_PATH):
+        return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+        
+    # مقارنة وقت تعديل الـ PDF بوقت تعديل الصورة
+    pdf_mtime = os.path.getmtime(PDF_FILE_PATH)
+    img_mtime = os.path.getmtime(LOCAL_IMAGE_PATH)
+    
+    # إذا كان الـ PDF أحدث من الصورة (أي تم تحديثه من السكربت)
+    if pdf_mtime > img_mtime:
+        return convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+        
+    return True, ""
+
+
+# ═══════════════════════════════════════════════════════════
+# 📊 دوال قراءات الخطوط
 # ═══════════════════════════════════════════════════════════
 DATE_COL = ' اليوم'
 
@@ -164,9 +182,9 @@ VALUE_COLS = {
     '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'},
 }
 
-
 @st.cache_data(ttl=300, show_spinner=False)
 def load_tank_data(path, sheet_names):
+    # ... (نفس الكود السابق) ...
     if isinstance(sheet_names, str):
         sheet_names = [sheet_names]
 
@@ -226,85 +244,47 @@ def load_tank_data(path, sheet_names):
 
     return combined, msg
 
-
 def plot_tank_data(df, chart_type='lines+markers', year_label=''):
+    # ... (نفس الكود السابق) ...
     fig = go.Figure()
-    
     for col, meta in VALUE_COLS.items():
         if col in df.columns:
             if chart_type == 'bar':
                 fig.add_trace(go.Bar(
-                    x=df[DATE_COL],
-                    y=df[col],
-                    name=meta['label'],
+                    x=df[DATE_COL], y=df[col], name=meta['label'],
                     marker=dict(color=meta['color']),
-                    hovertemplate=f"<b>{meta['label']}</b><br>" +
-                                  "التاريخ: %{x|%Y-%m-%d}<br>" +
-                                  "القيمة: %{y:,.2f}<extra></extra>",
+                    hovertemplate=f"<b>{meta['label']}</b><br>التاريخ: %{{x|%Y-%m-%d}}<br>القيمة: %{{y:,.2f}}<extra></extra>",
                 ))
             else:
                 fig.add_trace(go.Scatter(
-                    x=df[DATE_COL],
-                    y=df[col],
-                    mode=chart_type,
-                    name=meta['label'],
+                    x=df[DATE_COL], y=df[col], mode=chart_type, name=meta['label'],
                     line=dict(color=meta['color'], width=2.5),
                     marker=dict(size=6, color=meta['color']),
-                    hovertemplate=f"<b>{meta['label']}</b><br>" +
-                                  "التاريخ: %{x|%Y-%m-%d}<br>" +
-                                  "القيمة: %{y:,.2f}<extra></extra>",
+                    hovertemplate=f"<b>{meta['label']}</b><br>التاريخ: %{{x|%Y-%m-%d}}<br>القيمة: %{{y:,.2f}}<extra></extra>",
                 ))
     
     barmode = 'group' if chart_type == 'bar' else None
     title_text = f'📊 قراءات الخطوط - {year_label}' if year_label else '📊 قراءات الخطوط'
     
     fig.update_layout(
-        title=dict(
-            text=title_text,
-            font=dict(size=24, color='#F9CA24', family='Arial'),
-            x=0.5, xanchor='center',
-        ),
-        paper_bgcolor='#0B1E3F',
-        plot_bgcolor='#163A6B',
+        title=dict(text=title_text, font=dict(size=24, color='#F9CA24', family='Arial'), x=0.5, xanchor='center'),
+        paper_bgcolor='#0B1E3F', plot_bgcolor='#163A6B',
         font=dict(color='#E8F4FD', size=14, family='Arial'),
-        xaxis=dict(
-            title='📅 التاريخ',
-            gridcolor='rgba(74, 144, 217, 0.25)',
-            showline=True, linecolor='#4A90D9', linewidth=2,
-            tickformat='%Y-%m-%d',
-        ),
-        yaxis=dict(
-            title='📈 القراءة',
-            gridcolor='rgba(74, 144, 217, 0.25)',
-            showline=True, linecolor='#4A90D9', linewidth=2,
-            tickformat=',.0f',
-        ),
-        hovermode='x unified',
-        barmode=barmode,
-        legend=dict(
-            orientation='h',
-            yanchor='bottom', y=1.02,
-            xanchor='center', x=0.5,
-            bgcolor='rgba(11, 30, 63, 0.9)',
-            bordercolor='#4A90D9', borderwidth=2,
-            font=dict(size=14, color='#FFFFFF'),
-        ),
-        margin=dict(l=70, r=30, t=100, b=70),
-        height=550,
-        dragmode='pan',
+        xaxis=dict(title='📅 التاريخ', gridcolor='rgba(74, 144, 217, 0.25)', showline=True, linecolor='#4A90D9', linewidth=2, tickformat='%Y-%m-%d'),
+        yaxis=dict(title='📈 القراءة', gridcolor='rgba(74, 144, 217, 0.25)', showline=True, linecolor='#4A90D9', linewidth=2, tickformat=',.0f'),
+        hovermode='x unified', barmode=barmode,
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5, bgcolor='rgba(11, 30, 63, 0.9)', bordercolor='#4A90D9', borderwidth=2, font=dict(size=14, color='#FFFFFF')),
+        margin=dict(l=70, r=30, t=100, b=70), height=550, dragmode='pan',
     )
-    
     return fig
 
-
 def render_tank_stats(df):
+    # ... (نفس الكود السابق) ...
     valid_items = []
     for col, meta in VALUE_COLS.items():
-        if col not in df.columns:
-            continue
+        if col not in df.columns: continue
         series = df[col].dropna()
-        if series.empty:
-            continue
+        if series.empty: continue
         valid_items.append((col, meta, series))
 
     if not valid_items:
@@ -312,73 +292,23 @@ def render_tank_stats(df):
         return
 
     stat_cols = st.columns(len(valid_items))
-
     for idx, (col, meta, series) in enumerate(valid_items):
         last_val = series.iloc[-1]
         prev_val = series.iloc[-2] if len(series) > 1 else last_val
         delta = last_val - prev_val
         
-        if delta > 0:
-            delta_color = '#AFFF00'
-            delta_icon = '▲'
-        elif delta < 0:
-            delta_color = '#FF6B6B'
-            delta_icon = '▼'
-        else:
-            delta_color = '#E8F4FD'
-            delta_icon = '●'
+        if delta > 0: delta_color = '#AFFF00'; delta_icon = '▲'
+        elif delta < 0: delta_color = '#FF6B6B'; delta_icon = '▼'
+        else: delta_color = '#E8F4FD'; delta_icon = '●'
         
         with stat_cols[idx]:
             st.markdown(f"""
-            <div style="
-                background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 100%);
-                border-radius: 12px;
-                padding: 20px 15px;
-                border-right: 5px solid {meta['color']};
-                direction: rtl;
-                text-align: center;
-                min-height: 240px;
-                box-shadow: 0 0 15px rgba(74, 144, 217, 0.2);
-            ">
-                <div style="
-                    color: {meta['color']}; 
-                    font-size: 18px; 
-                    font-weight: bold; 
-                    margin-bottom: 12px;
-                    padding-bottom: 8px;
-                    border-bottom: 1px solid rgba(74, 144, 217, 0.3);
-                ">
-                    🛢️ خط {meta['label']}
-                </div>
-                <div style="color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 10px 0;">
-                    {last_val:,.2f}
-                </div>
-                <div style="color: #AFFF00; font-size: 14px; margin-bottom: 8px;">
-                    ⏱️ آخر قراءة
-                </div>
-                <div style="
-                    color: {delta_color}; 
-                    font-size: 16px; 
-                    font-weight: bold;
-                    margin-bottom: 15px;
-                    background: rgba(0,0,0,0.2);
-                    border-radius: 6px;
-                    padding: 6px 10px;
-                    display: inline-block;
-                ">
-                    {delta_icon} {abs(delta):,.2f} عن الأمس
-                </div>
-                <div style="
-                    color: #E8F4FD; 
-                    font-size: 16px;
-                    line-height: 2;
-                    text-align: right;
-                    padding: 0 10px;
-                ">
-                    📊 <b>المتوسط:</b> {series.mean():,.2f}<br>
-                    📈 <b>الأعلى:</b> {series.max():,.2f}<br>
-                    📉 <b>الأدنى:</b> {series.min():,.2f}
-                </div>
+            <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 100%); border-radius: 12px; padding: 20px 15px; border-right: 5px solid {meta['color']}; direction: rtl; text-align: center; min-height: 240px; box-shadow: 0 0 15px rgba(74, 144, 217, 0.2);">
+                <div style="color: {meta['color']}; font-size: 18px; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(74, 144, 217, 0.3);">🛢️ خط {meta['label']}</div>
+                <div style="color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 10px 0;">{last_val:,.2f}</div>
+                <div style="color: #AFFF00; font-size: 14px; margin-bottom: 8px;">⏱️ آخر قراءة</div>
+                <div style="color: {delta_color}; font-size: 16px; font-weight: bold; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 10px; display: inline-block;">{delta_icon} {abs(delta):,.2f} عن الأمس</div>
+                <div style="color: #E8F4FD; font-size: 16px; line-height: 2; text-align: right; padding: 0 10px;">📊 <b>المتوسط:</b> {series.mean():,.2f}<br>📈 <b>الأعلى:</b> {series.max():,.2f}<br>📉 <b>الأدنى:</b> {series.min():,.2f}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -400,61 +330,14 @@ st.title("📋 التقرير اليومي + 📹 المباشر")
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
 with tab1:
+    # ... (نفس كود الـ HTML للترويسة) ...
     st.markdown("""
-    <div style="
-        background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
-        border-radius: 22px;
-        padding: 45px 50px;
-        margin: 20px 0 30px 0;
-        border: 2px solid #4A90D9;
-        box-shadow: 
-            0 0 25px rgba(74, 144, 217, 0.35),
-            0 0 70px rgba(74, 144, 217, 0.15),
-            inset 0 0 50px rgba(74, 144, 217, 0.08);
-        direction: rtl;
-        text-align: center;
-    ">
-        <h1 style="
-            color: #F9CA24; 
-            font-size: 48px; 
-            margin: 0 0 25px 0;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        ">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
-        <h2 style="
-            color: #F9CA24; 
-            font-size: 48px; 
-            margin: 0 0 25px 0;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        ">🌟 الإدارة العامة للإتصالات والتحكم وتقنية المعلومات 🌟</h2>
-        <h3 style="
-            color: #F9CA24; 
-            font-size: 48px; 
-            margin: 0 0 25px 0;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        ">إدارة الإتصالات والتحكم</h3>
-        <h4 style="
-            color: #FFFFFF; 
-            font-size: 38px; 
-            margin: 0 0 35px 0;
-            text-shadow: 1px 1px 5px rgba(0,0,0,0.5);
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        ">📍 غرفة تحكم اجدابيا</h4>
-        <p style="
-            font-size: 28px;
-            color: #E8F4FD;
-            line-height: 2.3;
-            margin: 0 auto;
-            font-weight: 400;
-            font-family: Arial, sans-serif;
-            max-width: 1100px;
-        ">
+    <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%); border-radius: 22px; padding: 45px 50px; margin: 20px 0 30px 0; border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08); direction: rtl; text-align: center;">
+        <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
+        <h2 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 الإدارة العامة للإتصالات والتحكم وتقنية المعلومات 🌟</h2>
+        <h3 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">إدارة الإتصالات والتحكم</h3>
+        <h4 style="color: #FFFFFF; font-size: 38px; margin: 0 0 35px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h4>
+        <p style="font-size: 28px; color: #E8F4FD; line-height: 2.3; margin: 0 auto; font-weight: 400; font-family: Arial, sans-serif; max-width: 1100px;">
             <strong style="color: #AFFF00; font-size: 32px;">بمشيئة الله وفضله</strong> 
             في هذا المشروع الضخم 
             <strong style="color: #F9CA24; font-size: 30px;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
@@ -465,41 +348,15 @@ with tab1:
             وتنتهي إليها أي إشارة خطر.
             </strong>"
         </p>
-        <p style="
-            font-size: 26px;
-            color: #FFFFFF;
-            margin: 35px 0 0 0;
-            font-style: italic;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
-            font-family: Arial, sans-serif;
-        ">
-           <strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong> 
-        </p>
-        <p style="
-            text-align: left;
-            color: #F9CA24;
-            font-size: 24px;
-            margin: 30px 0 0 0;
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        ">✍️ م. ناصر</p>
+        <p style="font-size: 26px; color: #FFFFFF; margin: 35px 0 0 0; font-style: italic; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); font-family: Arial, sans-serif;"><strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong></p>
+        <p style="text-align: left; color: #F9CA24; font-size: 24px; margin: 30px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div style="
-        background: rgba(74, 144, 217, 0.1);
-        border-right: 4px solid #4A90D9;
-        border-radius: 8px;
-        padding: 12px 20px;
-        margin-bottom: 15px;
-        direction: rtl;
-        font-family: Arial, sans-serif;
-    ">
+    <div style="background: rgba(74, 144, 217, 0.1); border-right: 4px solid #4A90D9; border-radius: 8px; padding: 12px 20px; margin-bottom: 15px; direction: rtl; font-family: Arial, sans-serif;">
         <span style="color: #4A90D9; font-size: 16px; font-weight: bold;">📡 المصدر:</span>
-        <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">
-            {PDF_FILE_PATH}
-        </code>
+        <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">{PDF_FILE_PATH}</code>
     </div>
     """, unsafe_allow_html=True)
 
@@ -509,15 +366,12 @@ with tab1:
     with col1:
         if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
             with st.spinner('⏳ جاري تحويل الـ PDF إلى صورة...'):
-                if not os.path.exists(PDF_FILE_PATH):
-                    st.error(f"❌ لم يتم العثور على الملف {PDF_FILE_PATH} في المستودع!")
+                ok, msg = convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
+                if ok:
+                    st.success(msg)
+                    st.rerun()
                 else:
-                    ok, msg = convert_pdf_to_image(PDF_FILE_PATH, LOCAL_IMAGE_PATH)
-                    if ok:
-                        st.success(msg)
-                        st.rerun()
-                    else:
-                        st.error(msg)
+                    st.error(msg)
     
     with col2:
         if os.path.exists(LOCAL_IMAGE_PATH):
@@ -526,17 +380,21 @@ with tab1:
     
     st.markdown("---")
     
+    # ═══════════════════════════════════════════════════════════
+    # 🌟 التجديد التلقائي هنا 🌟
+    # ═══════════════════════════════════════════════════════════
+    with st.spinner('🔄 جاري التحقق من وجود تحديثات للتقرير...'):
+        check_and_auto_update()
+    
     if os.path.exists(LOCAL_IMAGE_PATH):
         img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
         st.image(LOCAL_IMAGE_PATH, width=img_width)
         
         with open(LOCAL_IMAGE_PATH, "rb") as f:
             st.download_button(
-                "🖼️ تحميل الصورة PNG",
-                data=f.read(),
+                "🖼️ تحميل الصورة PNG", data=f.read(),
                 file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
-                mime='image/png',
-                width="stretch"
+                mime='image/png', width="stretch"
             )
     else:
         st.warning("⏳ الصورة غير موجودة. اضغط زر إعادة التوليد لإنشائها من ملف الـ PDF.")
@@ -554,35 +412,16 @@ with tab1:
         ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 2, 1])
         
         with ctrl_col1:
-            chart_type_map = {
-                '📈 خطي + نقاط': 'lines+markers',
-                '📉 خط فقط': 'lines',
-                '📊 أعمدة': 'bar',
-            }
-            selected_label = st.radio(
-                "🎨 نوع الرسم:",
-                options=list(chart_type_map.keys()),
-                index=0,
-                horizontal=True,
-                key="chart_type_selector",
-            )
+            chart_type_map = {'📈 خطي + نقاط': 'lines+markers', '📉 خط فقط': 'lines', '📊 أعمدة': 'bar'}
+            selected_label = st.radio("🎨 نوع الرسم:", options=list(chart_type_map.keys()), index=0, horizontal=True, key="chart_type_selector")
             chart_type = chart_type_map[selected_label]
         
         with ctrl_col2:
             min_date = df_tank[DATE_COL].min().date()
             max_date = df_tank[DATE_COL].max().date()
-            
             default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
-            if isinstance(default_start, pd.Timestamp):
-                default_start = default_start.date()
-            
-            date_range = st.date_input(
-                "📅 الفترة:",
-                value=(default_start, max_date),
-                min_value=min_date,
-                max_value=max_date,
-                key="date_range_filter",
-            )
+            if isinstance(default_start, pd.Timestamp): default_start = default_start.date()
+            date_range = st.date_input("📅 الفترة:", value=(default_start, max_date), min_value=min_date, max_value=max_date, key="date_range_filter")
         
         with ctrl_col3:
             st.write("")
@@ -591,8 +430,7 @@ with tab1:
         
         if isinstance(date_range, tuple) and len(date_range) == 2:
             start_date, end_date = date_range
-            mask = (df_tank[DATE_COL].dt.date >= start_date) & \
-                   (df_tank[DATE_COL].dt.date <= end_date)
+            mask = (df_tank[DATE_COL].dt.date >= start_date) & (df_tank[DATE_COL].dt.date <= end_date)
             df_filtered = df_tank[mask].copy()
         else:
             df_filtered = df_tank.copy()
@@ -606,17 +444,7 @@ with tab1:
             st.plotly_chart(
                 plot_tank_data(df_filtered, chart_type, year_label),
                 width='stretch',
-                config={
-                    'displayModeBar': True,
-                    'scrollZoom': True,
-                    'toImageButtonOptions': {
-                        'format': 'png',
-                        'filename': f'tank_readings_{year_label.replace(" / ", "_")}_{datetime.now().strftime("%Y%m%d")}',
-                        'height': 800,
-                        'width': 1600,
-                        'scale': 2,
-                    },
-                }
+                config={'displayModeBar': True, 'scrollZoom': True, 'toImageButtonOptions': {'format': 'png', 'filename': f'tank_readings_{year_label.replace(" / ", "_")}_{datetime.now().strftime("%Y%m%d")}', 'height': 800, 'width': 1600, 'scale': 2}}
             )
             
             if show_stats:
@@ -637,8 +465,7 @@ with tab2:
                 self.cap = cv2.VideoCapture(self.camera_url)
                 if not self.cap.isOpened():
                     img = np.zeros((480, 640, 3), dtype=np.uint8)
-                    cv2.putText(img, "❌ لا يمكن الاتصال", (50, 240),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+                    cv2.putText(img, "❌ لا يمكن الاتصال", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
                     return av.VideoFrame.from_ndarray(img, format="bgr24")
             ret, frame = self.cap.read()
             if not ret:
@@ -651,9 +478,7 @@ with tab2:
             if self.cap is not None:
                 self.cap.release()
     
-    CAMERAS = {
-        "كاميرا 1 - المدخل": "rtsp://admin:password@192.168.1.100:554/stream1"
-    }
+    CAMERAS = {"كاميرا 1 - المدخل": "rtsp://admin:password@192.168.1.100:554/stream1"}
     
     if st.button("🔄 تحديث البث", width='stretch'):
         st.rerun()
@@ -666,9 +491,7 @@ with tab2:
                 webrtc_streamer(
                     key=f"cam_{idx}",
                     video_processor_factory=lambda: VideoTransformer(url),
-                    rtc_configuration=RTCConfiguration(
-                        {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-                    ),
+                    rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
                     media_stream_constraints={"video": True, "audio": False},
                 )
             except Exception as e:
