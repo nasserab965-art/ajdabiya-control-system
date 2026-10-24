@@ -39,34 +39,12 @@ st.title("📈 أرشيف القراءات 2030 → 2025 م")
 
 st.markdown("""
 <style>
-    /* تكبير خط العناوين الفرعية (مثل أسماء السنوات) */
-    h3 {
-        font-size: 1.6rem !important;
-        font-weight: bold !important;
-    }
-    /* تكبير نصوص القوائم المنسدلة (Selectbox) */
-    div[data-baseweb="select"] > div {
-        font-size: 18px !important;
-    }
-    /* تكبير نصوص خانات الاختيار (Checkboxes) */
-    .stCheckbox label span {
-        font-size: 18px !important;
-        font-weight: bold !important;
-    }
-    /* تكبير العناوين داخل الشريط الجانبي */
-    [data-testid="stSidebar"] h3 {
-        font-size: 1.4rem !important;
-    }
-    /* تكبير نصوص الأزرار */
-    button p {
-        font-size: 16px !important;
-    }
-    /* تقليل الفراغات الجانبية لتوسيع الصفحة */
-    .block-container {
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-        max-width: 95% !important;
-    }
+    h3 { font-size: 1.6rem !important; font-weight: bold !important; }
+    div[data-baseweb="select"] > div { font-size: 18px !important; }
+    .stCheckbox label span { font-size: 18px !important; font-weight: bold !important; }
+    [data-testid="stSidebar"] h3 { font-size: 1.4rem !important; }
+    button p { font-size: 16px !important; }
+    .block-container { padding-left: 2rem !important; padding-right: 2rem !important; max-width: 95% !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -91,8 +69,8 @@ def sync_all_excel_to_db():
         if df.empty or df.dropna(how='all').empty:
             continue
         
-        # تنظيف أسماء الأعمدة من المسافات
-        df.columns = [str(c).strip() for c in df.columns]
+        # تنظيف أسماء الأعمدة من المسافات والرموز الخفية
+        df.columns = [str(c).strip().replace('\n', '').replace('\r', '') for c in df.columns]
         df = df.dropna(how='all').reset_index(drop=True)
 
         # البحث عن عمود التاريخ
@@ -129,16 +107,14 @@ def sync_all_excel_to_db():
 # ═══════════════════════════════════════════════════════════
 # 🛑 إدارة الشريط الجانبي (إخفاء زر التحديث بعد البناء)
 # ═══════════════════════════════════════════════════════════
-# متغير في الذاكرة لمعرفة ما إذا تم استخدام الزر أم لا
 if 'db_sync_completed' not in st.session_state:
     st.session_state.db_sync_completed = False
 
 with st.sidebar:
     if not st.session_state.db_sync_completed:
         st.markdown("### ⚙️ إدارة البيانات (للمالك فقط)")
-        st.warning("⚠️ هذا الزر سيقوم بمسح الجداول القديمة وبناءها من جديد بناءً على الإكسيل. بعد الضغط عليه سيختفي للأبد.")
+        st.warning("⚠️ هذا الزر سيقوم بمسح الجداول القديمة وبناءها من جديد. بعد الضغط عليه سيختفي للأبد.")
         
-        # خيار للتأكيد
         confirm_sync = st.checkbox("أؤكد أنني أريد بناء قاعدة البيانات الآن", key="confirm_sync_cb")
         
         if confirm_sync:
@@ -147,7 +123,6 @@ with st.sidebar:
                     success, msg = sync_all_excel_to_db()
                     if success:
                         st.success(msg)
-                        # إخفاء الزر
                         st.session_state.db_sync_completed = True
                         st.cache_data.clear()
                         time.sleep(1.5)
@@ -155,12 +130,10 @@ with st.sidebar:
                     else:
                         st.error(msg)
     else:
-        # بعد الانتهاء، نعرض فقط معلومات (أو لا نعرض شيء)
-        st.success("🔒 تم بناء قاعدة البيانات بنجاح. زر التحديث مخفي الآن لحماية البيانات.")
+        st.success("🔒 تم بناء قاعدة البيانات بنجاح.")
     
     st.markdown("---")
     
-    # زر الفحص
     if st.button("🔍 فحص قاعدة البيانات (2027)", use_container_width=True):
         try:
             conn = sqlite3.connect('app_data.db')
@@ -180,7 +153,7 @@ with st.sidebar:
             st.error(f"خطأ: {e}")
 
 # ─────────────────────────────────────────────────────────────
-# 1. تحميل البيانات
+# 1. تحميل البيانات (مع تنظيف الأسماء)
 # ─────────────────────────────────────────────────────────────
 YEAR_TABLES = {2025: "main_job", 2026: "main_job_2026", 2027: "main_job_2027", 2028: "main_job_2028", 2029: "main_job_2029", 2030: "main_job_2030"}
 YEARS_DESC = sorted(YEAR_TABLES.keys(), reverse=True)
@@ -190,6 +163,8 @@ for year, table_name in YEAR_TABLES.items():
     try:
         df = load_table(table_name)
         if df is not None and not df.empty:
+            # تنظيف أسماء الأعمدة من المسافات والرموز
+            df.columns = [str(c).strip().replace('\n', '').replace('\r', '') for c in df.columns]
             years_data[year] = df
     except Exception:
         pass
@@ -207,29 +182,26 @@ available_years = [y for y in YEARS_DESC if y in years_data]
 st.markdown("---")
 col1, col2 = st.columns([1, 3])
 
-# جلب الأعمدة من أحدث سنة متاحة للحفاظ على الترتيب الأصلي للإكسل
-reference_year = available_years[0] # 2026 أو 2025
+reference_year = available_years[0]
 ref_df = years_data[reference_year]
 
-# 1. ترتيب أعمدة المحور X (حسب ترتيب السنة المرجعية ثم أي إضافات)
+# 1. ترتيب أعمدة المحور X
 common_all = [str(c) for c in ref_df.columns]
 for y in available_years:
     for c in years_data[y].columns:
         if str(c) not in common_all:
             common_all.append(str(c))
 
-# 2. ترتيب أعمدة المحور Y (الرقمية) حسب ترتيب السنة المرجعية
+# 2. ترتيب أعمدة المحور Y (الرقمية)
 ref_numeric = [str(c) for c in ref_df.select_dtypes(include=['number']).columns]
-common_numeric = list(ref_numeric) # نبدأ بأعمدة السنة المرجعية بالترتيب
+common_numeric = list(ref_numeric)
 
-# نضيف أي أعمدة رقمية جديدة موجودة في سنوات أخرى ولم تكن في السنة المرجعية
 for y in available_years:
     for c in years_data[y].select_dtypes(include=['number']).columns:
         if str(c) not in common_numeric:
             common_numeric.append(str(c))
 
 with col1:
-    # محاولة العثور على عمود التاريخ لجعله الاختيار الافتراضي
     default_x_index = 0
     for i, col in enumerate(common_all):
         if 'اليوم' in col or 'تاريخ' in col or 'date' in col.lower():
@@ -286,7 +258,7 @@ if not visible_years:
     st.stop()
 
 # ─────────────────────────────────────────────────────────────
-# 5. الرسم البياني
+# 5. الرسم البياني (مع تصفية القيم الشاذة)
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
 COLORS = ['#00008B', '#221E2A', "#114E5C", "#0E1A14", "#C0960E", '#DDA0DD', "#3E665C", '#F7DC6F']
@@ -295,8 +267,16 @@ y_min_global, y_max_global = float('inf'), float('-inf')
 for y in visible_years:
     for col in y_cols:
         if col in years_data[y].columns and not years_data[y][col].dropna().empty:
-            y_min_global = min(y_min_global, years_data[y][col].min())
-            y_max_global = max(y_max_global, years_data[y][col].max())
+            series = years_data[y][col].dropna()
+            # تجاهل القيم الشاذة (أكبر من 10 آلاف أو أصغر من -10 آلاف) لضمان ظهور الغراف بشكل سليم
+            valid_series = series[(series > -10000) & (series < 10000)]
+            if not valid_series.empty:
+                y_min_global = min(y_min_global, valid_series.min())
+                y_max_global = max(y_max_global, valid_series.max())
+
+# في حال لم يتم العثور على قيم صالحة
+if y_min_global == float('inf') or y_max_global == float('-inf'):
+    y_min_global, y_max_global = None, None
 
 final_x_title = custom_x_title if custom_x_title.strip() else x_axis
 final_y_title = custom_y_title if custom_y_title.strip() else "القيمة"
@@ -329,7 +309,7 @@ for y in visible_years:
         yaxis_title=dict(text=final_y_title, font=dict(size=title_font)),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=10, r=10, t=30, b=10),
-        yaxis=dict(range=[y_min_global, y_max_global], showgrid=show_grid, gridcolor='lightgray', zeroline=False, tickfont=dict(size=tick_font)),
+        yaxis=dict(range=[y_min_global, y_max_global] if y_min_global is not None else None, showgrid=show_grid, gridcolor='lightgray', zeroline=False, tickfont=dict(size=tick_font)),
         xaxis=dict(showgrid=show_grid, gridcolor='lightgray', tickfont=dict(size=tick_font), showspikes=True, spikemode="across", spikesnap="cursor", spikedash="dot", spikecolor="gray", spikethickness=1)
     )
     try: fig.update_xaxes(type='date')
