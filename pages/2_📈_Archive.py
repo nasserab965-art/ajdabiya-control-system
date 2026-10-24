@@ -125,24 +125,39 @@ def sync_all_excel_to_db():
         return False, "⚠️ لم يتم العثور على بيانات صالحة (تأكد من وجود عمود 'اليوم' وتواريخ صحيحة)."
     return True, "✅ تم التحديث:\n" + "\n".join(updated)
 
-# ─────────────────────────────────────────────────────────────
-# الشريط الجانبي
-# ─────────────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════════
+# 🛑 إدارة الشريط الجانبي (إخفاء زر التحديث بعد البناء)
+# ═══════════════════════════════════════════════════════════
+# متغير في الذاكرة لمعرفة ما إذا تم استخدام الزر أم لا
+if 'db_sync_completed' not in st.session_state:
+    st.session_state.db_sync_completed = False
+
 with st.sidebar:
-    st.markdown("### ⚙️ إدارة البيانات")
+    if not st.session_state.db_sync_completed:
+        st.markdown("### ⚙️ إدارة البيانات (للمالك فقط)")
+        st.warning("⚠️ هذا الزر سيقوم بمسح الجداول القديمة وبناءها من جديد بناءً على الإكسيل. بعد الضغط عليه سيختفي للأبد.")
+        
+        # خيار للتأكيد
+        confirm_sync = st.checkbox("أؤكد أنني أريد بناء قاعدة البيانات الآن", key="confirm_sync_cb")
+        
+        if confirm_sync:
+            if st.button("🔄 تحديث البيانات من الإكسل", use_container_width=True, type="primary"):
+                with st.spinner("جاري بناء قاعدة البيانات..."):
+                    success, msg = sync_all_excel_to_db()
+                    if success:
+                        st.success(msg)
+                        # إخفاء الزر
+                        st.session_state.db_sync_completed = True
+                        st.cache_data.clear()
+                        time.sleep(1.5)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+    else:
+        # بعد الانتهاء، نعرض فقط معلومات (أو لا نعرض شيء)
+        st.success("🔒 تم بناء قاعدة البيانات بنجاح. زر التحديث مخفي الآن لحماية البيانات.")
     
-    # زر المزامنة
-    if st.button("🔄 تحديث البيانات من الإكسل", use_container_width=True, type="primary"):
-        with st.spinner("جاري المزامنة..."):
-            success, msg = sync_all_excel_to_db()
-            if success:
-                st.success(msg)
-                st.cache_data.clear()
-                time.sleep(1.5)
-                st.rerun()
-            else:
-                st.error(msg)
-                
     st.markdown("---")
     
     # زر الفحص
@@ -158,7 +173,7 @@ with st.sidebar:
                 st.success(f"✅ جدول 2027 موجود ويحتوي على {len(df_check)} صف.")
                 st.write("**أول 5 أعمدة:**", df_check.columns.tolist()[:5])
             else:
-                st.error("❌ جدول 2027 غير موجود بعد! اضغط على زر التحديث أولاً.")
+                st.error("❌ جدول 2027 غير موجود بعد!")
                 st.write("الجداول الموجودة:", tables)
             conn.close()
         except Exception as e:
