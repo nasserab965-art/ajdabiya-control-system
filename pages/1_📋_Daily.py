@@ -180,10 +180,11 @@ def get_latest_pdf_commit_date():
 DATE_COL = ' اليوم'
 
 VALUE_COLS = {
-    '(S/S TOT) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},
-    '(T/B TOT) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
-    '(A/B TOT) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
-    '(A/S TOT) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
+    '(S/S) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},
+    '(T/B) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
+    '(A/B) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
+    '(A/S) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
+    'AJD_LOSES': {'label': 'الفاقد', 'color': '#FFFB6B'},
     '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'},
 }
 
