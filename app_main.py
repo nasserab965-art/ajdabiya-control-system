@@ -187,20 +187,7 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
 # ═══════════════════════════════════════════════════════════
 # 🎨 شريط الأدوات المخصص (بدون GitHub وبدون القلم)
 # ═══════════════════════════════════════════════════════════
-toolbar_html = """
-<div class="custom-toolbar">
-    <!-- النجمة -->
-   # <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">☆</a>
-    
-    <!-- المشاركة -->
-    <span title="مشاركة الرابط" onclick="navigator.clipboard.writeText(window.location.href); alert('تم نسخ الرابط بنجاح!')">🔗</span>
 
-    <!-- النقاط الثلاث -->
-    <span title="القائمة" style="letter-spacing: 2px; font-size: 24px; margin-left: 5px;">⋮</span>
-</div>
-"""
-# استخدام st.html لضمان تنفيذ الكود كـ HTML وليس كنص
-st.html(toolbar_html)
 
 # ═══════════════════════════════════════════════════════════
 # 🎨 CSS للأزرار — تصميم متدرج
