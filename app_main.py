@@ -190,7 +190,7 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
 toolbar_html = """
 <div class="custom-toolbar">
     <!-- النجمة -->
-    <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">☆</a>
+   # <a href="https://github.com/nasserab965-art/ajdabiya-control-system" target="_blank" title="النجمة">☆</a>
     
     <!-- المشاركة -->
     <span title="مشاركة الرابط" onclick="navigator.clipboard.writeText(window.location.href); alert('تم نسخ الرابط بنجاح!')">🔗</span>
