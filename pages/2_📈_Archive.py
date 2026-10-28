@@ -12,7 +12,7 @@ import pandas as pd
 import sqlite3
 import plotly.graph_objects as go
 import time
-
+from datetime import datetime # <--- أضف هذا السطر هنا
 # الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
