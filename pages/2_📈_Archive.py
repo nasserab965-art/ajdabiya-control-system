@@ -218,5 +218,5 @@ with col3:
         st.switch_page("app_main.py")
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
+    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_archive_bottom"):
         st.switch_page("app_main.py")
