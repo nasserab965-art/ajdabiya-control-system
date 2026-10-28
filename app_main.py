@@ -72,11 +72,10 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (إخفاء الشريط و Manage app + إجبار الاتجاه LTR)
+# 🎨 CSS العام (بدون أي إجبار للاتجاه)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-    /* إخفاء الشريط الجانبي */
     section[data-testid="stSidebar"] { display: none !important; }
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
@@ -87,9 +86,7 @@ st.markdown("""
     
     footer { display: none !important; }
     
-    /* ⬅️ تغيير اتجاه الصفحة بالكامل إلى اليسار (LTR) */
-    html, body, .stApp {
-        direction: ltr !important; 
+    html, body {
         overflow: hidden !important;
         height: 100vh !important;
         width: 100vw !important;
@@ -99,6 +96,11 @@ st.markdown("""
     
     .stApp {
         background: #000 !important;
+        overflow: hidden !important;
+        height: 100vh !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
     .block-container {
@@ -168,14 +170,6 @@ st.markdown("""
         color: #F9CA24 !important;
         transform: scale(1.15);
     }
-
-    /* إجبار القائمة الجانبية على الظهور من اليسار في باقي الصفحات */
-    section[data-testid="stSidebar"] {
-        direction: ltr !important;
-    }
-    section[data-testid="stSidebar"] * {
-        text-align: left !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -196,7 +190,6 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
 # ═══════════════════════════════════════════════════════════
 st.html("""
 <style>
-    /* تعديل الأزرار لتكون النصوص من اليسار لليمين */
     div[data-testid="stButton"] > button {
         min-height: 85px !important;
         font-family: Arial, sans-serif !important;
@@ -213,8 +206,6 @@ st.html("""
         line-height: 1.3 !important;
         box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important;
         margin-bottom: 22px !important;
-        direction: ltr !important; /* اتجاه النص داخل الزر */
-        text-align: left !important; /* محاذاة النص لليسار */
     }
     
     div[data-testid="stButton"] > button:hover {
@@ -231,8 +222,6 @@ st.html("""
         font-size: 22px !important;
         font-weight: 900 !important;
         text-shadow: 2px 2px 8px rgba(0,0,0,0.85) !important;
-        direction: ltr !important;
-        text-align: left !important;
     }
     
     button[key="go_daily"] {
@@ -271,11 +260,10 @@ st.html("""
 """)
 
 # ═══════════════════════════════════════════════════════════
-# 🎯 الأزرار الرئيسية (تم وضعها في العمود الأيسر)
+# 🎯 الأزرار الرئيسية
 # ═══════════════════════════════════════════════════════════
 st.markdown("<br>" * 12, unsafe_allow_html=True)
 
-# العمود الأول (col_left) سيكون على اليسار في وضع LTR
 col_left, col_spacer = st.columns([1, 3])
 
 with col_left:
