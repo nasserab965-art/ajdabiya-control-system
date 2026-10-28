@@ -20,8 +20,9 @@ def check_login():
         st.stop()
 
 def apply_common_css():
-    """تنسيقات CSS مشتركة لكل الصفحات + إجبار الاتجاه لليسار"""
+    """تنسيقات CSS مشتركة لكل الصفحات + إجبار الاتجاه لليسار + إخفاء الهيدر"""
     
+    # كود JavaScript لإجبار الاتجاه LTR
     components.html(
         """
         <script>
@@ -39,16 +40,30 @@ def apply_common_css():
         height=0, width=0
     )
 
+    # كود CSS
     st.markdown("""
     <style>
+        /* 🛑 إخفاء الشريط العلوي (الذي يحتوي على GitHub و Fork و Manage app) */
+        header[data-testid="stHeader"] { display: none !important; }
+        [data-testid="stToolbar"] { display: none !important; }
+        [data-testid="manage-app-button"] { display: none !important; }
+        
+        /* إجبار الاتجاه لليسار */
         .stApp { direction: ltr !important; }
+        
+        /* إجبار القائمة الجانبية على اليسار */
         [data-testid="stSidebar"] {
             left: 0 !important;
             right: auto !important;
             direction: ltr !important;
         }
+        
+        /* محاذاة النصوص لليسار */
         .stMarkdown { text-align: left !important; }
+        
+        /* إخفاء أزرار إضافية */
         [data-testid="collapsedControl"] { display: none !important; }
+        footer { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -62,21 +77,17 @@ def back_to_home_button():
 
 @st.cache_data(ttl=60)
 def load_table(table_name):
-    """تحميل البيانات من الإكسيل مباشرة (تجاهل قاعدة البيانات)"""
+    """تحميل البيانات من الإكسيل مباشرة"""
     try:
         excel_path = 'mainjob.xlsx'
         if not os.path.exists(excel_path):
             return None
             
-        # بما أن أسماء الجداول قد لا تطابق أسماء الشيتات، سنقوم بقراءة كل الشيتات
         all_sheets = pd.read_excel(excel_path, sheet_name=None)
-        
-        # البحث عن الشيت الذي يحتوي على السنة المطلوبة
         target_year = str(table_name).replace('main_job_', '').replace('main_job', '2025')
         
         for sheet_name, df in all_sheets.items():
             if target_year in sheet_name or sheet_name == table_name:
-                # تنظيف أسماء الأعمدة
                 df.columns = [str(c).strip().replace('\n', '').replace('\r', '') for c in df.columns]
                 return df
         return None
