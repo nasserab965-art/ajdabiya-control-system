@@ -442,15 +442,20 @@ with tab1:
             chart_type = chart_type_map[selected_label]
         
         with ctrl_col2:
-            min_date = df_tank[DATE_COL].min().date()
-            max_date = df_tank[DATE_COL].max().date()
-            
             # ═══════════════════════════════════════════════════════════
-            # 🌟 خوارزمية تحديد الفترة الافتراضية (خلال السنة الحالية فقط)
+            # 🌟 خوارزمية تحديد الفترة الافتراضية (ذكية وتتجاهل التواريخ المستقبلية)
             # ═══════════════════════════════════════════════════════════
             today = datetime.now().date()
             current_year = today.year
             
+            # التأكد من أن الحد الأقصى للعرض لا يتجاوز تاريخ اليوم الفعلي
+            max_available_date = df_tank[DATE_COL].max().date()
+            max_date = min(today, max_available_date)
+            
+            # الحد الأدنى للعرض
+            min_date = df_tank[DATE_COL].min().date()
+            
+            # تحديد تاريخ البداية
             start_of_current_year = date(current_year, 1, 1)
             
             if today.day <= 7:
@@ -474,7 +479,7 @@ with tab1:
                 "📅 الفترة:",
                 value=(default_start, max_date),
                 min_value=min_date,
-                max_value=max_date,
+                max_value=max_available_date, # نسمح باختيار أي تاريخ في الإكسيل يدوياً
                 key="date_range_filter",
             )
         
