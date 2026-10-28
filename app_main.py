@@ -86,7 +86,9 @@ st.markdown("""
     
     footer { display: none !important; }
     
-    html, body {
+    /* ⬅️ تغيير اتجاه الصفحة بالكامل إلى اليسار (LTR) */
+    html, body, .stApp {
+        direction: ltr !important; 
         overflow: hidden !important;
         height: 100vh !important;
         width: 100vw !important;
@@ -96,11 +98,6 @@ st.markdown("""
     
     .stApp {
         background: #000 !important;
-        overflow: hidden !important;
-        height: 100vh !important;
-        width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
     }
     
     .block-container {
@@ -184,16 +181,13 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
         unsafe_allow_html=True
     )
 
-# ═══════════════════════════════════════════════════════════
-# 🎨 شريط الأدوات المخصص (بدون GitHub وبدون القلم)
-# ═══════════════════════════════════════════════════════════
-
 
 # ═══════════════════════════════════════════════════════════
 # 🎨 CSS للأزرار — تصميم متدرج
 # ═══════════════════════════════════════════════════════════
 st.html("""
 <style>
+    /* تعديل الأزرار لتكون النصوص من اليسار لليمين */
     div[data-testid="stButton"] > button {
         min-height: 85px !important;
         font-family: Arial, sans-serif !important;
@@ -210,6 +204,8 @@ st.html("""
         line-height: 1.3 !important;
         box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important;
         margin-bottom: 22px !important;
+        direction: ltr !important; /* اتجاه النص داخل الزر */
+        text-align: left !important; /* محاذاة النص لليسار */
     }
     
     div[data-testid="stButton"] > button:hover {
@@ -226,6 +222,8 @@ st.html("""
         font-size: 22px !important;
         font-weight: 900 !important;
         text-shadow: 2px 2px 8px rgba(0,0,0,0.85) !important;
+        direction: ltr !important;
+        text-align: left !important;
     }
     
     button[key="go_daily"] {
@@ -264,10 +262,11 @@ st.html("""
 """)
 
 # ═══════════════════════════════════════════════════════════
-# 🎯 الأزرار الرئيسية
+# 🎯 الأزرار الرئيسية (تم وضعها في العمود الأيسر)
 # ═══════════════════════════════════════════════════════════
 st.markdown("<br>" * 12, unsafe_allow_html=True)
 
+# العمود الأول (col_left) سيكون على اليسار في وضع LTR
 col_left, col_spacer = st.columns([1, 3])
 
 with col_left:
