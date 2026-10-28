@@ -72,10 +72,11 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (إخفاء الشريط و Manage app)
+# 🎨 CSS العام (إخفاء الشريط و Manage app + إجبار الاتجاه LTR)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
+    /* إخفاء الشريط الجانبي */
     section[data-testid="stSidebar"] { display: none !important; }
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
@@ -166,6 +167,14 @@ st.markdown("""
     .custom-toolbar a:hover, .custom-toolbar span:hover {
         color: #F9CA24 !important;
         transform: scale(1.15);
+    }
+
+    /* إجبار القائمة الجانبية على الظهور من اليسار في باقي الصفحات */
+    section[data-testid="stSidebar"] {
+        direction: ltr !important;
+    }
+    section[data-testid="stSidebar"] * {
+        text-align: left !important;
     }
 </style>
 """, unsafe_allow_html=True)
