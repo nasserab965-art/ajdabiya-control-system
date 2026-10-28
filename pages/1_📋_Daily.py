@@ -129,7 +129,6 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
 
 def convert_pdf_to_image(pdf_path, scale=3):
     """تحويل الـ PDF إلى صورة جديدة باسم فريد وإرجاع اسم الملف"""
-    # إنشاء اسم فريد للصورة يعتمد على الوقت الحالي لتجنب الكاش
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     new_image_path = f'Daily_rep_{timestamp_str}.png'
     
@@ -365,30 +364,23 @@ with tab1:
     # ═══════════════════════════════════════════════════════════
     # 🌟 التجديد التلقائي (الحل النهائي) 🌟
     # ═══════════════════════════════════════════════════════════
-    # جلب تاريخ آخر تحديث من GitHub
     last_commit_date = get_latest_pdf_commit_date()
-    
-    # البحث عن أحدث صورة محلية متاحة
     existing_images = sorted(glob.glob('Daily_rep_*.png'), reverse=True)
     current_image_path = existing_images[0] if existing_images else None
     
     trigger_conversion = False
     
     if not current_image_path:
-        trigger_conversion = True # لا توجد صورة أساساً
+        trigger_conversion = True
     elif last_commit_date:
-        # استخراج التاريخ من اسم الصورة (لأننا نسميها Daily_rep_20231025_153000.png)
         try:
             img_time_str = current_image_path.replace('Daily_rep_', '').replace('.png', '')
             img_time = datetime.strptime(img_time_str, "%Y%m%d_%H%M%S")
-            
-            # إذا كان تاريخ الـ PDF في GitHub أحدث من الصورة، نحوله
             if last_commit_date > img_time:
                 trigger_conversion = True
         except:
             trigger_conversion = True
 
-    # تنفيذ التحويل إذا لزم الأمر
     if trigger_conversion and os.path.exists(PDF_FILE_PATH):
         with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري تجهيز التقرير...'):
             success, msg, new_img = convert_pdf_to_image(PDF_FILE_PATH)
@@ -398,7 +390,6 @@ with tab1:
             else:
                 st.error(msg)
                 
-    # أزرار التحكم
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
@@ -416,7 +407,6 @@ with tab1:
     
     with col2:
         if current_image_path and os.path.exists(current_image_path):
-            # استخراج التاريخ من اسم الملف
             try:
                 img_time_str = current_image_path.replace('Daily_rep_', '').replace('.png', '')
                 img_time = datetime.strptime(img_time_str, "%Y%m%d_%H%M%S")
@@ -426,10 +416,8 @@ with tab1:
     
     st.markdown("---")
     
-    # عرض الصورة
     if current_image_path and os.path.exists(current_image_path):
         img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
-        # استخدام مسار الصورة الفريد لمنع المتصفح من الكاش
         st.image(current_image_path, width=img_width)
         
         with open(current_image_path, "rb") as f:
@@ -461,9 +449,31 @@ with tab1:
         with ctrl_col2:
             min_date = df_tank[DATE_COL].min().date()
             max_date = df_tank[DATE_COL].max().date()
-            default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
-            if isinstance(default_start, pd.Timestamp): default_start = default_start.date()
-            date_range = st.date_input("📅 الفترة:", value=(default_start, max_date), min_value=min_date, max_value=max_date, key="date_range_filter")
+            
+            # ═══════════════════════════════════════════════════════════
+            # 🌟 خوارزمية تحديد الفترة الافتراضية (آخر 15 يوم أو بداية الشهر)
+            # ═══════════════════════════════════════════════════════════
+            today = datetime.now().date()
+            
+            # إذا كنا في أول 7 أيام من الشهر، نبدأ من بداية الشهر الحالي
+            if today.day <= 7:
+                default_start = date(today.year, today.month, 1)
+            else:
+                # إذا كنا في منتصف أو نهاية الشهر، نعرض آخر 15 يوماً
+                default_start = max_date - pd.Timedelta(days=15)
+                if isinstance(default_start, pd.Timestamp):
+                    default_start = default_start.date()
+            
+            # التأكد من أن التاريخ لا يتجاوز بداية البيانات المتاحة
+            default_start = max(min_date, default_start)
+            
+            date_range = st.date_input(
+                "📅 الفترة:",
+                value=(default_start, max_date),
+                min_value=min_date,
+                max_value=max_date,
+                key="date_range_filter",
+            )
         
         with ctrl_col3:
             st.write("")
