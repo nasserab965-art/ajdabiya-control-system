@@ -219,17 +219,25 @@ with col2:
     )
 
 # ─────────────────────────────────────────────────────────────
-# 3. اختيار الأعوام
+# 3. اختيار الأعوام (تحديد السنة الحالية كافتراضي)
 # ─────────────────────────────────────────────────────────────
 st.markdown("**👁️ اختر الأعوام لعرضها:**")
 year_cols = st.columns(len(available_years))
 visible_years = []
 
+# تحديد السنة الحالية
+current_year = datetime.now().year
+
 for i, y in enumerate(available_years):
     with year_cols[i]:
         valid_rows = len(years_data[y].dropna(how='all')) 
         has_data = valid_rows > 0
-        if st.checkbox(f"{y} ({valid_rows} صف)", value=has_data, key=f"show_year_{y}"):
+        
+        # إذا كانت السنة هي السنة الحالية، نضع علامة صح افتراضياً
+        # أما باقي السنوات، نضعها فارغة لكي لا يتم رسمها إلا إذا اختارها المستخدم
+        is_checked_by_default = (y == current_year)
+        
+        if st.checkbox(f"{y} ({valid_rows} صف)", value=is_checked_by_default, key=f"show_year_{y}"):
             visible_years.append(y)
 
 # ─────────────────────────────────────────────────────────────
