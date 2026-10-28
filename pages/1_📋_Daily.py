@@ -144,7 +144,6 @@ def convert_pdf_to_image(pdf_path, scale=3):
         add_timestamp_to_image(new_image_path)
         add_watermark_to_image(new_image_path, text="غرفة تحكم اجدابيا")
         
-        # حذف الصور القديمة لتوفير المساحة
         for old_img in glob.glob('Daily_rep_*.png'):
             if old_img != new_image_path:
                 try:
@@ -162,7 +161,6 @@ def convert_pdf_to_image(pdf_path, scale=3):
 # ═══════════════════════════════════════════════════════════
 @st.cache_data(ttl=60, show_spinner=False)
 def get_latest_pdf_commit_date():
-    """جلب تاريخ آخر تحديث لملف الـ PDF من GitHub"""
     try:
         url = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/commits?path=Daily_rep.pdf&page=1&per_page=1"
         response = requests.get(url)
@@ -361,9 +359,6 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    # ═══════════════════════════════════════════════════════════
-    # 🌟 التجديد التلقائي (الحل النهائي) 🌟
-    # ═══════════════════════════════════════════════════════════
     last_commit_date = get_latest_pdf_commit_date()
     existing_images = sorted(glob.glob('Daily_rep_*.png'), reverse=True)
     current_image_path = existing_images[0] if existing_images else None
@@ -451,22 +446,30 @@ with tab1:
             max_date = df_tank[DATE_COL].max().date()
             
             # ═══════════════════════════════════════════════════════════
-            # 🌟 خوارزمية تحديد الفترة الافتراضية (آخر 15 يوم أو بداية الشهر)
+            # 🌟 خوارزمية تحديد الفترة الافتراضية (خلال السنة الحالية فقط)
             # ═══════════════════════════════════════════════════════════
             today = datetime.now().date()
+            current_year = today.year
             
-            # إذا كنا في أول 7 أيام من الشهر، نبدأ من بداية الشهر الحالي
+            start_of_current_year = date(current_year, 1, 1)
+            
             if today.day <= 7:
-                default_start = date(today.year, today.month, 1)
+                default_start = date(current_year, today.month, 1)
             else:
-                # إذا كنا في منتصف أو نهاية الشهر، نعرض آخر 15 يوماً
                 default_start = max_date - pd.Timedelta(days=15)
                 if isinstance(default_start, pd.Timestamp):
                     default_start = default_start.date()
             
-            # التأكد من أن التاريخ لا يتجاوز بداية البيانات المتاحة
+            if default_start < start_of_current_year:
+                default_start = start_of_current_year
+                
             default_start = max(min_date, default_start)
             
+            if default_start > max_date:
+                default_start = max(min_date, max_date - pd.Timedelta(days=15))
+                if isinstance(default_start, pd.Timestamp):
+                    default_start = default_start.date()
+
             date_range = st.date_input(
                 "📅 الفترة:",
                 value=(default_start, max_date),
