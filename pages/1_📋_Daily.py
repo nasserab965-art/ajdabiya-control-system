@@ -441,7 +441,7 @@ with tab1:
     st.markdown("---")
     
     if current_image_path and os.path.exists(current_image_path):
-        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2000, 100, key="img_w")
+        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2200, 100, key="img_w")
         st.image(current_image_path, width=img_width)
         
         with open(current_image_path, "rb") as f:
