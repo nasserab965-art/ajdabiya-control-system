@@ -34,6 +34,35 @@ st.set_page_config(
 )
 
 apply_common_css()
+st.markdown("""
+<style>
+    /* تكبير أرقام المحاور (X و Y) */
+    .js-plotly-plot .plotly .xtick text,
+    .js-plotly-plot .plotly .ytick text {
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    
+    /* تكبير عناوين المحاور */
+    .js-plotly-plot .plotly .xaxis-title text,
+    .js-plotly-plot .plotly .yaxis-title text {
+        font-size: 20px !important;
+        font-weight: bold !important;
+    }
+    
+    /* تكبير نصوص مفاتيح الرسم (Legend) */
+    .js-plotly-plot .plotly .legendtext {
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    
+    /* تكبير شريط الأدوات العلوي (الزوم والتكبير والتحميل) */
+    .js-plotly-plot .plotly .modebar-btn {
+        transform: scale(1.5) !important;
+        margin: 5px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
 # 🛑 إخفاء شريط الأدوات العلوي
