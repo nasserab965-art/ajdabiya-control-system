@@ -601,14 +601,26 @@ st.header("📊 بيانات GMRALINES")
 
 @st.cache_data
 def load_gmr():
+    """تحميل بيانات GMRALINES من الإكسيل مباشرة (بدلاً من قاعدة البيانات)"""
     try:
-        conn = sqlite3.connect('app_data.db')
-        df = pd.read_sql_query("SELECT * FROM gmr_lines", conn)
-        conn.close()
+        # البحث عن ملف GMRALINES.xlsx أولاً
+        excel_path = 'GMRALINES.xlsx'
+        if not os.path.exists(excel_path):
+            # إذا لم يوجد، جرب ALLINES.xlsx كبديل
+            excel_path = 'ALLINES.xlsx'
+            if not os.path.exists(excel_path):
+                return None
+                
+        # قراءة الملف
+        df = pd.read_excel(excel_path)
+        
+        # تنظيف أسماء الأعمدة من المسافات الزائدة
+        df.columns = [str(c).strip() for c in df.columns]
+        
         return None if df.empty else df
-    except Exception:
+    except Exception as e:
+        # في حال حدوث أي خطأ
         return None
-
 
 df_gmr = load_gmr()
 if df_gmr is not None:
