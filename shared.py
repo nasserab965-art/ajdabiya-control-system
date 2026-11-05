@@ -1,6 +1,5 @@
 """
 ملف الدوال المشتركة (shared.py)
-يجب أن يكون موجوداً في المجلد الرئيسي (E:\firstpy)
 """
 import streamlit as st
 import streamlit.components.v1 as components
@@ -20,96 +19,65 @@ def check_login():
         st.stop()
 
 def apply_common_css():
-    """تنسيقات CSS مشتركة لكل الصفحات + إجبار الاتجاه لليسار + إخفاء الهيدر + تكبير الخطوط"""
+    """تنسيقات CSS مشتركة + إجبار الخطوط على التكبير عبر JavaScript"""
     
-    # كود JavaScript لإجبار الاتجاه LTR
+    # كود JavaScript (يجبر المتصفح على تغيير الخطوط)
     components.html(
         """
         <script>
             setTimeout(function() {
                 var doc = window.parent.document;
+                
+                // 1. إجبار الاتجاه لليسار
                 doc.documentElement.setAttribute('dir', 'ltr');
                 doc.body.setAttribute('dir', 'ltr');
                 var sidebar = doc.querySelector('[data-testid="stSidebar"]');
                 if (sidebar) {
                     sidebar.setAttribute('dir', 'ltr');
                 }
-            }, 1000);
+
+                // 2. إجبار الخطوط على التكبير
+                var style = doc.createElement('style');
+                style.innerHTML = `
+                    /* تكبير الخط الأساسي */
+                    html, body, [class*="css"] { font-size: 22px !important; }
+                    
+                    /* تكبير العناوين */
+                    h1 { font-size: 3rem !important; }
+                    h2 { font-size: 2.5rem !important; }
+                    h3 { font-size: 2rem !important; }
+                    h4 { font-size: 1.6rem !important; }
+                    
+                    /* تكبير الأزرار */
+                    .stButton > button, div[data-testid="stButton"] > button { font-size: 24px !important; font-weight: bold !important; min-height: 55px !important; }
+                    .stButton > button *, div[data-testid="stButton"] > button * { font-size: 24px !important; }
+                    
+                    /* تكبير القوائم المنسدلة */
+                    div[data-baseweb="select"] * { font-size: 20px !important; }
+                    
+                    /* تكبير الجداول والتنبيهات */
+                    div[data-testid="stDataFrame"] * { font-size: 18px !important; }
+                    div[data-testid="stNotification"] * { font-size: 20px !important; }
+                    
+                    /* إخفاء الهيدر */
+                    header[data-testid="stHeader"] { display: none !important; }
+                    [data-testid="stToolbar"] { display: none !important; }
+                    [data-testid="manage-app-button"] { display: none !important; }
+                    footer { display: none !important; }
+                `;
+                doc.head.appendChild(style);
+            }, 500); // تأخير نصف ثانية لضمان تحميل الصفحة
         </script>
         """,
         height=0, width=0
     )
 
-    # كود CSS
+    # كود CSS احتياطي
     st.markdown("""
     <style>
-        /* 🛑 إخفاء الشريط العلوي (الذي يحتوي على GitHub و Fork و Manage app) */
-        header[data-testid="stHeader"] { display: none !important; }
-        [data-testid="stToolbar"] { display: none !important; }
-        [data-testid="manage-app-button"] { display: none !important; }
-        
-        /* إجبار الاتجاه لليسار */
         .stApp { direction: ltr !important; }
-        
-        /* إجبار القائمة الجانبية على اليسار */
-        [data-testid="stSidebar"] {
-            left: 0 !important;
-            right: auto !important;
-            direction: ltr !important;
-        }
-        
-        /* محاذاة النصوص لليسار */
+        [data-testid="stSidebar"] { left: 0 !important; right: auto !important; direction: ltr !important; }
         .stMarkdown { text-align: left !important; }
-        
-        /* إخفاء أزرار إضافية */
-        [data-testid="collapsedControl"] { display: none !important; }
-        footer { display: none !important; }
-
-        /* ═══════════════════════════════════════════════════════════ */
-        /* 🌟 تكبير الخطوط في جميع الصفحات (الحل الجذري)               */
-        /* ═══════════════════════════════════════════════════════════ */
-        
-        /* تكبير الخط الأساسي للتطبيق بالكامل */
-        html, body, [class*="css"] {
-            font-size: 22px !important; 
-        }
-
-        /* تكبير العناوين بشكل إضافي */
-        h1 { font-size: 3rem !important; }
-        h2 { font-size: 2.5rem !important; }
-        h3 { font-size: 2rem !important; }
-        h4 { font-size: 1.6rem !important; }
-
-        /* تكبير نصوص الأزرار */
-        .stButton > button, .stButton > button *, div[data-testid="stButton"] > button, div[data-testid="stButton"] > button * {
-            font-size: 24px !important;
-            font-weight: bold !important;
-        }
-        .stButton > button, div[data-testid="stButton"] > button {
-            min-height: 55px !important;
-            border-radius: 10px !important;
-        }
-
-        /* تكبير خيارات القوائم المنسدلة (Selectbox/Multiselect) */
-        div[data-baseweb="select"] * {
-            font-size: 20px !important;
-        }
-
-        /* تكبير عناوين الجداول المنسدلة (Expander) */
-        details > summary {
-            font-size: 22px !important;
-            font-weight: bold !important;
-        }
-
-        /* تكبير النصوص داخل الجداول (DataFrame) */
-        div[data-testid="stDataFrame"] * {
-            font-size: 18px !important;
-        }
-        
-        /* تكبير نصوص التنبيهات والملاحظات */
-        div[data-testid="stNotification"] * {
-            font-size: 20px !important;
-        }
     </style>
     """, unsafe_allow_html=True)
 
