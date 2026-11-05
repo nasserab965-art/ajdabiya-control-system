@@ -17,6 +17,7 @@ import io
 import base64
 import zipfile
 from datetime import datetime
+from openpyxl.utils import column_index_from_string
 
 # استيراد الدوال المشتركة من ملف shared.py
 from shared import check_login, apply_common_css, back_to_home_button
@@ -57,18 +58,11 @@ check_login()
 # ═══════════════════════════════════════════════════════════
 GLOBAL_BUTTON_CSS = """
 <style>
-    /* تكبير الخط الأساسي للتطبيق بالكامل (تأثير الدومينو) */
-    html, body, [class*="css"] {
-        font-size: 22px !important; 
-    }
-
-    /* تكبير العناوين بشكل إضافي */
+    html, body, [class*="css"] { font-size: 22px !important; }
     h1 { font-size: 3rem !important; }
     h2 { font-size: 2.5rem !important; }
     h3 { font-size: 2rem !important; }
     h4 { font-size: 1.6rem !important; }
-
-    /* تكبير نصوص الأزرار */
     .stButton > button, .stButton > button *, div[data-testid="stButton"] > button, div[data-testid="stButton"] > button * {
         font-size: 24px !important;
         font-weight: bold !important;
@@ -77,27 +71,10 @@ GLOBAL_BUTTON_CSS = """
         min-height: 55px !important;
         border-radius: 10px !important;
     }
-
-    /* تكبير خيارات القوائم المنسدلة (Multiselect) */
-    div[data-baseweb="select"] * {
-        font-size: 20px !important;
-    }
-
-    /* تكبير عناوين الجداول المنسدلة (Expander) */
-    details > summary {
-        font-size: 22px !important;
-        font-weight: bold !important;
-    }
-
-    /* تكبير النصوص داخل الجداول */
-    div[data-testid="stDataFrame"] * {
-        font-size: 18px !important;
-    }
-    
-    /* تكبير نصوص التنبيهات والملاحظات */
-    div[data-testid="stNotification"] * {
-        font-size: 20px !important;
-    }
+    div[data-baseweb="select"] * { font-size: 20px !important; }
+    details > summary { font-size: 22px !important; font-weight: bold !important; }
+    div[data-testid="stDataFrame"] * { font-size: 18px !important; }
+    div[data-testid="stNotification"] * { font-size: 20px !important; }
 </style>
 """
 st.markdown(GLOBAL_BUTTON_CSS, unsafe_allow_html=True)
@@ -198,7 +175,7 @@ def open_print_window(df, title, rows_per_column=30):
     ''', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 📊 دالة إنشاء رسوم GMRALINES
+# 📊 دالة إنشاء رسوم GMRALINES (الحل الجذري)
 # ═══════════════════════════════════════════════════════════
 def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_col=None):
     if not PLOTLY_AVAILABLE:
@@ -209,16 +186,33 @@ def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_c
     st.markdown(f"<h4 style='margin: 5px 0;'>📊 {title}</h4>", unsafe_allow_html=True)
     
     try:
-        missing_cols = [col for col in x_cols + [y_col] if col not in df.columns]
-        if missing_cols:
-            st.warning(f"⚠️ الأعمدة التالية غير موجودة: {', '.join(missing_cols)}")
+        # ═══════════════════════════════════════════════════════════
+        # 🌟 الحل: قراءة الأعمدة حسب الترتيب (Index) بدلاً من الاسم
+        # ═══════════════════════════════════════════════════════════
+        try:
+            # تحويل الحروف (A, B, C...) إلى أرقام (0, 1, 2...)
+            x_idx = [column_index_from_string(c) - 1 for c in x_cols]
+            y_idx = column_index_from_string(y_col) - 1
+            
+            # التأكد من أن الملف يحتوي على العدد الكافي من الأعمدة
+            if len(df.columns) <= max(x_idx + [y_idx]):
+                st.warning(f"⚠️ الملف لا يحتوي على عدد كافٍ من الأعمدة. (الملف يحتوي على {len(df.columns)} عمود فقط).")
+                return
+                
+            # استخراج البيانات بناءً على الأرقام
+            df_clean = pd.DataFrame()
+            for i, idx in enumerate(x_idx):
+                df_clean[f'X_{i}'] = df.iloc[:, idx]
+            df_clean['Y_Val'] = df.iloc[:, y_idx]
+            
+            # تحديث المتغيرات لتتوافق مع الأسماء الجديدة
+            x_cols = [f'X_{i}' for i in range(len(x_idx))]
+            y_col = 'Y_Val'
+
+        except Exception as e:
+            st.error(f"❌ خطأ في قراءة الأعمدة: {e}")
             return
-        
-        df_clean = df.copy()
-        for col in x_cols:
-            if col in df_clean.columns:
-                df_clean[col] = df_clean[col].astype(str)
-        
+
         df_clean = df_clean.dropna(subset=x_cols + [y_col])
         if df_clean.empty:
             st.warning("⚠️ لا توجد بيانات كافية!")
@@ -508,7 +502,6 @@ if st.session_state.active_line_map is not None:
                 if kml_content is None:
                     st.warning("⚠️ لا توجد نقاط بعد التصفية — عدّل الفلتر")
                 else:
-                    # ═══ الصف الأول: أزرار التحميل ═══
                     col_dl1, col_dl2, col_dl3 = st.columns(3)
 
                     with col_dl1:
@@ -550,7 +543,6 @@ if st.session_state.active_line_map is not None:
 
                     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
-                    # ═══ الصف الثاني: زر Google Earth (بعرض كامل) ═══
                     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
                     
                     earth_url = "https://earth.google.com/web/"
@@ -566,14 +558,11 @@ if st.session_state.active_line_map is not None:
                         unsafe_allow_html=True
                     )
 
-                # ═══ مسافة للفصل بين الزر والجدول ═══
                 st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
 
-                # ═══ عرض الجدول الكامل ═══
                 with st.expander("📊 عرض الجدول الكامل (Excel Style)"):
                     st.dataframe(result_df, width="stretch", height=400)
                     
-                # ═══ مسافة في نهاية الصفحة ═══
                 st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 
         except FileNotFoundError as e:
@@ -594,33 +583,27 @@ st.title("🗺️ الخطوط والمحطات وخرائط Google")
 st.markdown("---")
 
 # ═══════════════════════════════════════════════════════════
-# 📊 تحميل بيانات GMRALINES
+# 📊 تحميل بيانات GMRALINES (مباشرة من الإكسيل)
 # ═══════════════════════════════════════════════════════════
 st.header("📊 بيانات GMRALINES")
 
 
 @st.cache_data
 def load_gmr():
-    """تحميل بيانات GMRALINES من الإكسيل مباشرة (بدلاً من قاعدة البيانات)"""
+    """تحميل بيانات GMRALINES من الإكسيل مباشرة"""
     try:
-        # البحث عن ملف GMRALINES.xlsx أولاً
         excel_path = 'GMRALINES.xlsx'
         if not os.path.exists(excel_path):
-            # إذا لم يوجد، جرب ALLINES.xlsx كبديل
             excel_path = 'ALLINES.xlsx'
             if not os.path.exists(excel_path):
                 return None
                 
-        # قراءة الملف
         df = pd.read_excel(excel_path)
-        
-        # تنظيف أسماء الأعمدة من المسافات الزائدة
         df.columns = [str(c).strip() for c in df.columns]
-        
         return None if df.empty else df
-    except Exception as e:
-        # في حال حدوث أي خطأ
+    except Exception:
         return None
+
 
 df_gmr = load_gmr()
 if df_gmr is not None:
@@ -677,7 +660,6 @@ else:
 
         col_left, col_right = st.columns([1, 4], gap="medium")
 
-        # ═══ العمود الأيسر: زر العرض فقط ═══
         with col_left:
             st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
             if st.button(
@@ -689,7 +671,6 @@ else:
                 st.session_state.active_line_map = line_key
                 st.rerun()
 
-        # ═══ العمود الأيمن: الرسم البياني ═══
         with col_right:
             if df_gmr is not None and chart_cfg is not None:
                 create_gmr_chart(
@@ -747,19 +728,4 @@ for i in range(0, len(locations_list), cols_per_row):
 st.markdown("---")       
 
 # ═══════════════════════════════════════════════════════════
-# 🖼️ زر الانتقال لمعرض الصور
-# ═══════════════════════════════════════════════════════════
-st.markdown("---")
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    if st.button("🖼️ الذهاب إلى معرض الصور", width="stretch", type="primary", key="go_to_album"):
-        st.switch_page("pages/4_🖼️_Album.py")
-
-# ═══════════════════════════════════════════════════════════
-# 🏠 زر العودة للرئيسية (أسفل الصفحة)
-# ═══════════════════════════════════════════════════════════
-st.markdown("---")
-col1, col2, col3 = st.columns([1, 2, 1])
-with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
-        st.switch_page("app_main.py")
+# 🖼️ زر الانتقال ل
