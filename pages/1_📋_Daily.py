@@ -340,16 +340,16 @@ with tab1:
         <p style="font-size: 28px; color: #E8F4FD; line-height: 2.3; margin: 0 auto; font-weight: 400; font-family: Arial, sans-serif; max-width: 1100px;">
             <strong style="color: #AFFF00; font-size: 32px;">بمشيئة الله وفضله</strong> 
             في هذا المشروع الضخم 
-            <strong style="color: #F9CA24; font-size: 30px;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
-            " فأنا <strong style="color: #F9CA24; font-size: 30px;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
-            <strong style="color: #AFFF00; font-size: 28px;">
+            <strong style="color: #F9CA24; font-size: 34px;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
+            " فأنا <strong style="color: #F9CA24; font-size: 34px;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
+            <strong style="color: #AFFF00; font-size: 34px;">
             النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع. 
             مكاني ليس مجرد موقع عمل، بل هو غرفة التحكم التي تبدأ منها رحلة استقرار المياه، 
             وتنتهي إليها أي إشارة خطر.
             </strong>"
         </p>
         <p style="font-size: 34px; color: #FFFFFF; margin: 35px 0 0 0; font-style: italic; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); font-family: Arial, sans-serif;"><strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong></p>
-        <p style="text-align: left; color: #F9CA24; font-size: 24px; margin: 30px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
+        <p style="text-align: left; color: #F9CA24; font-size: 34px; margin: 30px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
     </div>
     """, unsafe_allow_html=True)
 
