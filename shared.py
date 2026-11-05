@@ -2,6 +2,7 @@
 ملف الدوال المشتركة (shared.py)
 """
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import os
 
@@ -15,47 +16,79 @@ def check_login():
         st.stop()
 
 def apply_common_css():
-    """تطبيق التنسيقات المشتركة (الاتجاه + التكبير + إخفاء الهيدر)"""
+    """تطبيق التنسيقات المشتركة + التكبير عبر JavaScript"""
+    
+    # 1. كود CSS الأساسي (للاتجاه وإخفاء الهيدر)
     st.markdown("""
     <style>
-        /* إخفاء الشريط العلوي */
         header[data-testid="stHeader"] { display: none !important; }
         [data-testid="stToolbar"] { display: none !important; }
         [data-testid="manage-app-button"] { display: none !important; }
         footer { display: none !important; }
-
-        /* إجبار الاتجاه لليسار */
         .stApp { direction: ltr !important; }
-        [data-testid="stSidebar"] {
-            left: 0 !important;
-            right: auto !important;
-            direction: ltr !important;
-        }
+        [data-testid="stSidebar"] { left: 0 !important; right: auto !important; direction: ltr !important; }
         .stMarkdown { text-align: left !important; }
         [data-testid="collapsedControl"] { display: none !important; }
-
-        /* ═══════════════════════════════════════════════════════════ */
-        /* 🌟 تكبير الخطوط في جميع الصفحات (الحل الجذري)               */
-        /* ═══════════════════════════════════════════════════════════ */
-        html, body, [class*="css"] { font-size: 22px !important; }
-        h1 { font-size: 3rem !important; }
-        h2 { font-size: 2.5rem !important; }
-        h3 { font-size: 2rem !important; }
-        h4 { font-size: 1.6rem !important; }
-        .stButton > button, .stButton > button *, div[data-testid="stButton"] > button, div[data-testid="stButton"] > button * {
-            font-size: 24px !important;
-            font-weight: bold !important;
-        }
-        .stButton > button, div[data-testid="stButton"] > button {
-            min-height: 55px !important;
-            border-radius: 10px !important;
-        }
-        div[data-baseweb="select"] * { font-size: 20px !important; }
-        details > summary { font-size: 22px !important; font-weight: bold !important; }
-        div[data-testid="stDataFrame"] * { font-size: 18px !important; }
-        div[data-testid="stNotification"] * { font-size: 20px !important; }
     </style>
     """, unsafe_allow_html=True)
+
+    # 2. كود JavaScript (لتكبير الخطوط واختراق Shadow DOM)
+    components.html(
+        """
+        <script>
+            function applyZoom() {
+                var parentDoc = window.parent.document;
+                
+                // إزالة أي تنسيق قديم
+                var oldStyle = parentDoc.getElementById('custom-zoom-style');
+                if (oldStyle) oldStyle.remove();
+
+                // إنشاء وسم التنسيق الجديد
+                var style = parentDoc.createElement('style');
+                style.id = 'custom-zoom-style';
+                style.innerHTML = `
+                    /* تكبير الخط الأساسي */
+                    html, body, .stApp { font-size: 22px !important; }
+                    
+                    /* تكبير العناوين */
+                    h1 { font-size: 3rem !important; }
+                    h2 { font-size: 2.5rem !important; }
+                    h3 { font-size: 2rem !important; }
+                    h4 { font-size: 1.6rem !important; }
+                    
+                    /* تكبير الأزرار */
+                    button { font-size: 24px !important; font-weight: bold !important; min-height: 55px !important; }
+                    button * { font-size: 24px !important; }
+                    
+                    /* تكبير القوائم المنسدلة */
+                    div[data-baseweb="select"] * { font-size: 20px !important; }
+                    
+                    /* تكبير مربعات الاختيار والنصوص التابعة لها */
+                    label[data-testid="stWidgetLabel"] p { font-size: 22px !important; font-weight: bold !important; }
+                    div[data-testid="stCheckbox"] label p { font-size: 22px !important; }
+                    div[role="checkbox"] { transform: scale(1.5); margin: 5px; }
+                    
+                    /* تكبير الجداول والتنبيهات */
+                    div[data-testid="stDataFrame"] * { font-size: 18px !important; }
+                    div[data-testid="stNotification"] * { font-size: 20px !important; }
+                `;
+                parentDoc.head.appendChild(style);
+            }
+
+            // تطبيق التكبير فوراً، ومراقبة أي تغييرات في الصفحة لتطبيقه مجدداً
+            applyZoom();
+            setTimeout(applyZoom, 500);
+            setTimeout(applyZoom, 1500);
+            
+            // مراقبة إضافة عناصر جديدة (مثل فتح القوائم)
+            var observer = new MutationObserver(function(mutations) {
+                applyZoom();
+            });
+            observer.observe(window.parent.document.body, { childList: true, subtree: true });
+        </script>
+        """,
+        height=0, width=0
+    )
 
 def back_to_home_button():
     st.markdown("---")
