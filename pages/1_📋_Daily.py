@@ -343,7 +343,7 @@ with tab1:
     <p style="font-size: 38px; color: #E8F4FD; line-height: 2.2; margin: 0 auto; font-family: Arial, sans-serif; max-width: 950px;">
         <strong style="color: #AFFF00; font-size: 38px;">في هذا المشروع الضخم ( مشروع النهر الصناعى - المرحلة الأولى ) بمشيئة الله وفضله</strong> 
         <strong style="color: #AFFF00; font-size: 34px;">  أنا ( موقع خزان التجميع والموازنة - اجدابيا )  </strong> 
-        <strong style="color: #F9CA24; font-size: 34px;"> النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع. < /strong> 
+        <strong style="color: #F9CA24; font-size: 34px;"> النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع.
     </p>
     <p style="font-size: 34px; color: #FFFFFF; margin: 30px 0 0 0; font-style: italic; font-family: Arial, sans-serif;">
        <strong style="color: #AFFF00; font-size: 34px;"> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong> 
