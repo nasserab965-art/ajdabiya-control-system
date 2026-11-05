@@ -340,8 +340,8 @@ with tab1:
         <p style="font-size: 28px; color: #E8F4FD; line-height: 2.3; margin: 0 auto; font-weight: 400; font-family: Arial, sans-serif; max-width: 1100px;">
             <strong style="color: #AFFF00; font-size: 32px;">بمشيئة الله وفضله</strong> 
              
-            <strong style="color: #F9CA24; font-size: 34px;"> " فأنا ( مشروع النهر الصناعى - المرحلة الأولى ) في هذا المشروع الضخم</strong>، 
-            <strong style="color: #F9CA24; font-size: 34px;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
+            <strong style="color: #F9CA24; font-size: 34px;"> "  ( مشروع النهر الصناعى - المرحلة الأولى ) في هذا المشروع الضخم</strong>، 
+            <strong style="color: #F9CA24; font-size: 34px;">( موقع خزان التجميع والموازنة - اجدابيا ) فأنا</strong> 
             <strong style="color: #AFFF00; font-size: 34px;">
             النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع. 
             مكاني ليس مجرد موقع عمل، بل هو غرفة التحكم التي تبدأ منها رحلة استقرار المياه، 
