@@ -339,9 +339,9 @@ with tab1:
         <h4 style="color: #FFFFFF; font-size: 38px; margin: 0 0 35px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h4>
         <p style="font-size: 28px; color: #E8F4FD; line-height: 2.3; margin: 0 auto; font-weight: 400; font-family: Arial, sans-serif; max-width: 1100px;">
             <strong style="color: #AFFF00; font-size: 32px;">بمشيئة الله وفضله</strong> 
-            في هذا المشروع الضخم 
-            <strong style="color: #F9CA24; font-size: 34px;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
-            " فأنا <strong style="color: #F9CA24; font-size: 34px;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
+             
+            <strong style="color: #F9CA24; font-size: 34px;"> " فأنا ( مشروع النهر الصناعى - المرحلة الأولى ) في هذا المشروع الضخم</strong>، 
+            <strong style="color: #F9CA24; font-size: 34px;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
             <strong style="color: #AFFF00; font-size: 34px;">
             النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع. 
             مكاني ليس مجرد موقع عمل، بل هو غرفة التحكم التي تبدأ منها رحلة استقرار المياه، 
