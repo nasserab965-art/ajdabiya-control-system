@@ -333,7 +333,7 @@ with tab1:
     # ═══════════════════════════════════════════════════════════
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
-    border-radius: 22px; padding: 35px 40px; margin: 20px 0 30px 0;
+    border-radius: 22px; padding: 30px 30px; margin: 20px 0 30px 0;
     border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), inset 0 0 50px rgba(74, 144, 217, 0.08);
     direction: rtl; text-align: center;">
     <h1 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
@@ -341,8 +341,8 @@ with tab1:
     <h3 style="color: #ffffff; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">إدارة الإتصالات والتحكم</h3>
     <h4 style="color: #FFFFFF; font-size: 26px; margin: 0 0 30px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h4>
     <p style="font-size: 38px; color: #E8F4FD; line-height: 2.2; margin: 0 auto; font-family: Arial, sans-serif; max-width: 950px;">
-        <strong style="color: #AFFF00; font-size: 38px;">في هذا المشروع الضخم ( مشروع النهر الصناعى - المرحلة الأولى ) بمشيئة الله وفضله</strong> 
-        <strong style="color: #AFFF00; font-size: 34px;">  أنا ( موقع خزان التجميع والموازنة - اجدابيا )  </strong> 
+        <strong style="color: #AFFF00; font-size: 38px;">  في هذا المشروع الضخم ( مشروع النهر الصناعى - المرحلة الأولى ) بمشيئة الله وفضله</strong> 
+        <strong style="color: #AFFFff; font-size: 34px;">  أنا ( موقع خزان التجميع والموازنة - اجدابيا )  </strong> 
         <strong style="color: #F9CA24; font-size: 34px;"> النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع.
     </p>
     <p style="font-size: 34px; color: #FFFFFF; margin: 30px 0 0 0; font-style: italic; font-family: Arial, sans-serif;">
