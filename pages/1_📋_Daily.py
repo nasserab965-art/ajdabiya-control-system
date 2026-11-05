@@ -332,45 +332,26 @@ with tab1:
     # 🌟 الترويسة المنسقة (بدون أخطاء)
     # ═══════════════════════════════════════════════════════════
     st.markdown("""
-    <div style="
-        background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
-        border-radius: 22px;
-        padding: 45px 50px;
-        margin: 20px 0 30px 0;
-        border: 2px solid #4A90D9;
-        box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08);
-        direction: rtl;
-        text-align: center;
-        font-family: Arial, sans-serif;
-    ">
-        <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
-        
-        <h2 style="color: #F9CA24; font-size: 44px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold;">🌟 الإدارة العامة للإتصالات والتحكم وتقنية المعلومات 🌟</h2>
-        
-        <h3 style="color: #F9CA24; font-size: 40px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold;">إدارة الإتصالات والتحكم</h3>
-        
-        <h4 style="color: #FFFFFF; font-size: 38px; margin: 0 0 35px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-weight: bold;">📍 غرفة تحكم اجدابيا</h4>
-        
-        <div style="font-size: 32px; color: #E8F4FD; line-height: 2.2; margin: 0 auto; max-width: 1200px;">
-            <strong style="color: #AFFF00; font-size: 36px;">بمشيئة الله وفضله</strong><br><br>
-            <strong style="color: #F9CA24; font-size: 34px;">في هذا المشروع الضخم ( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
-            <strong style="color: #F9CA24; font-size: 34px;">( موقع خزان التجميع والموازنة - اجدابيا ) فأنا</strong><br><br>
-            <strong style="color: #AFFF00; font-size: 34px; line-height: 2.0;">
-                النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع. 
-                مكاني ليس مجرد موقع عمل، بل هو غرفة التحكم التي تبدأ منها رحلة استقرار المياه، 
-                وتنتهي إليها أي إشارة خطر.
-            </strong>
-        </div>
-        
-        <p style="font-size: 36px; color: #FFFFFF; margin: 35px 0 0 0; font-style: italic; text-shadow: 1px 1px 4px rgba(0,0,0,0.4);">
-            <strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong>
-        </p>
-        
-        <p style="text-align: left; color: #F9CA24; font-size: 32px; margin: 30px 0 0 0; font-weight: bold;">
-            ✍️ م. ناصر
-        </p>
+    <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
+    border-radius: 22px; padding: 35px 40px; margin: 20px 0 30px 0;
+    border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), inset 0 0 50px rgba(74, 144, 217, 0.08);
+    direction: rtl; text-align: center;">
+    <h1 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
+    <h2 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">الإدارة العامة للإتصالات والتحكم وتقنية المعلومات</h2>
+    <h3 style="color: #ffffff; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">إدارة الإتصالات والتحكم</h3>
+    <h4 style="color: #FFFFFF; font-size: 26px; margin: 0 0 30px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h4>
+    <p style="font-size: 20px; color: #E8F4FD; line-height: 2.2; margin: 0 auto; font-family: Arial, sans-serif; max-width: 950px;">
+        <strong style="color: #AFFF00; font-size: 22px;">بمشيئة الله وفضله</strong> 
+        في هذا المشروع الضخم <strong style="color: #F9CA24;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
+        " فأنا <strong style="color: #F9CA24;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
+        <strong style="color: #AFFF00;">النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع.</strong>"
+    </p>
+    <p style="font-size: 19px; color: #FFFFFF; margin: 30px 0 0 0; font-style: italic; font-family: Arial, sans-serif;">
+       <strong style="color: #AFFF00; font-size: 30px;"> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong> 
+    </p>
+    <p style="text-align: left; color: #F9CA24; font-size: 17px; margin: 25px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
     </div>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div style="background: rgba(74, 144, 217, 0.1); border-right: 4px solid #4A90D9; border-radius: 8px; padding: 12px 20px; margin-bottom: 15px; direction: rtl; font-family: Arial, sans-serif;">
