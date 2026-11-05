@@ -334,7 +334,7 @@ with tab1:
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
     border-radius: 22px; padding: 30px 30px; margin: 20px 0 30px 0;
-    border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), inset 0 0 50px rgba(74, 144, 217, 0.08);
+    border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 120, 217, 0.35), inset 0 0 50px rgba(74, 144, 217, 0.08);
     direction: rtl; text-align: center;">
     <h1 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
     <h2 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">الإدارة العامة للإتصالات والتحكم وتقنية المعلومات</h2>
@@ -348,7 +348,7 @@ with tab1:
     <p style="font-size: 34px; color: #FFFFFF; margin: 30px 0 0 0; font-style: italic; font-family: Arial, sans-serif;">
        <strong style="color: #AFFF00; font-size: 34px;"> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong> 
     </p>
-    <p style="text-align: left; color: #F9CA24; font-size: 34px; margin: 25px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
+    <p style="text-align: left; color: #AFFFff; font-size: 34px; margin: 25px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
     </div>
 """, unsafe_allow_html=True)
 
