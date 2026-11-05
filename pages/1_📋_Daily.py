@@ -332,8 +332,7 @@ with tab1:
     # 🌟 الترويسة المنسقة (بدون أخطاء)
     # ═══════════════════════════════════════════════════════════
     st.markdown("""
-    st.markdown("""
-    <div style="
+        <div style="
         background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
         border-radius: 22px; 
         padding: 40px 30px; 
