@@ -348,8 +348,8 @@ with tab1:
             وتنتهي إليها أي إشارة خطر.
             </strong>"
         </p>
-        <p style="font-size: 34px; color: #FFFFFF; margin: 35px 0 0 0; font-style: italic; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); font-family: Arial, sans-serif;"><strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong></p>
-        <p style="text-align: left; color: #F9CA24; font-size: 34px; margin: 30px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
+        <p style="font-size: 38px; color: #FFFFFF; margin: 35px 0 0 0; font-style: italic; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); font-family: Arial, sans-serif;"><strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong></p>
+        <p style="text-align: left; color: #F9CA24; font-size: 36px; margin: 30px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
     </div>
     """, unsafe_allow_html=True)
 
