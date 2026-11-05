@@ -20,7 +20,7 @@ def check_login():
         st.stop()
 
 def apply_common_css():
-    """تنسيقات CSS مشتركة لكل الصفحات + إجبار الاتجاه لليسار + إخفاء الهيدر"""
+    """تنسيقات CSS مشتركة لكل الصفحات + إجبار الاتجاه لليسار + إخفاء الهيدر + تكبير الخطوط"""
     
     # كود JavaScript لإجبار الاتجاه LTR
     components.html(
@@ -64,6 +64,52 @@ def apply_common_css():
         /* إخفاء أزرار إضافية */
         [data-testid="collapsedControl"] { display: none !important; }
         footer { display: none !important; }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* 🌟 تكبير الخطوط في جميع الصفحات (الحل الجذري)               */
+        /* ═══════════════════════════════════════════════════════════ */
+        
+        /* تكبير الخط الأساسي للتطبيق بالكامل */
+        html, body, [class*="css"] {
+            font-size: 22px !important; 
+        }
+
+        /* تكبير العناوين بشكل إضافي */
+        h1 { font-size: 3rem !important; }
+        h2 { font-size: 2.5rem !important; }
+        h3 { font-size: 2rem !important; }
+        h4 { font-size: 1.6rem !important; }
+
+        /* تكبير نصوص الأزرار */
+        .stButton > button, .stButton > button *, div[data-testid="stButton"] > button, div[data-testid="stButton"] > button * {
+            font-size: 24px !important;
+            font-weight: bold !important;
+        }
+        .stButton > button, div[data-testid="stButton"] > button {
+            min-height: 55px !important;
+            border-radius: 10px !important;
+        }
+
+        /* تكبير خيارات القوائم المنسدلة (Selectbox/Multiselect) */
+        div[data-baseweb="select"] * {
+            font-size: 20px !important;
+        }
+
+        /* تكبير عناوين الجداول المنسدلة (Expander) */
+        details > summary {
+            font-size: 22px !important;
+            font-weight: bold !important;
+        }
+
+        /* تكبير النصوص داخل الجداول (DataFrame) */
+        div[data-testid="stDataFrame"] * {
+            font-size: 18px !important;
+        }
+        
+        /* تكبير نصوص التنبيهات والملاحظات */
+        div[data-testid="stNotification"] * {
+            font-size: 20px !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 
