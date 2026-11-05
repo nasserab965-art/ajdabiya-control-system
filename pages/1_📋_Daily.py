@@ -341,7 +341,7 @@ with tab1:
     <h3 style="color: #ffffff; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">إدارة الإتصالات والتحكم</h3>
     <h4 style="color: #FFFFFF; font-size: 26px; margin: 0 0 30px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h4>
     <p style="font-size: 38px; color: #E8F4FD; line-height: 2.2; margin: 0 auto; font-family: Arial, sans-serif; max-width: 950px;">
-        <strong style="color: #AFFF00; font-size: 34px;">بمشيئة الله وفضله</strong> 
+        <strong style="color: #AFFF00; font-size: 38px;">بمشيئة الله وفضله</strong> 
         في هذا المشروع الضخم <strong style="color: #F9CA24;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
         " فأنا <strong style="color: #F9CA24;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
         <strong style="color: #AFFF00;">النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع.</strong>"
