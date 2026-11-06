@@ -238,27 +238,27 @@ st.markdown("""
 <div class="hotspot-container">
     <!-- إحداثيات سرت -->
     <div class="hotspot" style="top: 30%; left: 45%;">
-        <img src="app/static/sirt.jpg" alt="سرت">
+        <img src="app/static/SIRT_END_RESV.jpg" alt="سرت">
     </div>
 
     <!-- إحداثيات اجدابيا -->
     <div class="hotspot" style="top: 40%; left: 60%;">
-        <img src="app/static/ajdabiya.jpg" alt="اجدابيا">
+        <img src="app/static/AJD_RESV.jpg" alt="اجدابيا">
     </div>
 
     <!-- إحداثيات بنغازي -->
     <div class="hotspot" style="top: 32%; left: 78%;">
-        <img src="app/static/benghazi.jpg" alt="بنغازي">
+        <img src="app/static/BEN_END_RESV.jpg" alt="بنغازي">
     </div>
 
     <!-- إحداثيات حقل السرير -->
     <div class="hotspot" style="top: 65%; left: 42%;">
-        <img src="app/static/sirir.jpg" alt="حقل السرير">
+        <img src="app/static/SARIR_WELLS_FEILD.jpg" alt="حقل السرير">
     </div>
 
     <!-- إحداثيات حقل تازربو -->
     <div class="hotspot" style="top: 80%; left: 60%;">
-        <img src="app/static/tazerbo.jpg" alt="حقل تازربو">
+        <img src="app/static/TAZ_WELLS_FEILD.jpg" alt="حقل تازربو">
     </div>
 </div>
 """, unsafe_allow_html=True)
