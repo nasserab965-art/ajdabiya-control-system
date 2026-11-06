@@ -236,27 +236,23 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <div class="hotspot-container">
-    <!-- إحداثيات سرت -->
+    
     <div class="hotspot" style="top: 30%; left: 45%;">
         <img src="pages/album/SIRT_END_RESV.jpg" alt="سرت">
     </div>
 
-    <!-- إحداثيات اجدابيا -->
     <div class="hotspot" style="top: 40%; left: 60%;">
         <img src="pages/album/AJD_RESV.jpg" alt="اجدابيا">
     </div>
 
-    <!-- إحداثيات بنغازي -->
     <div class="hotspot" style="top: 32%; left: 78%;">
         <img src="pages/album/BEN_END_RESV.jpg" alt="بنغازي">
     </div>
 
-    <!-- إحداثيات حقل السرير -->
     <div class="hotspot" style="top: 65%; left: 42%;">
         <img src="pages/album/SARIR_WELLS_FEILD.jpg" alt="حقل السرير">
     </div>
 
-    <!-- إحداثيات حقل تازربو -->
     <div class="hotspot" style="top: 80%; left: 60%;">
         <img src="pages/album/TAZ_WELLS_FEILD.jpg" alt="حقل تازربو">
     </div>
