@@ -72,7 +72,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (بدون أي إجبار للاتجاه)
+# 🎨 CSS العام
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -80,10 +80,7 @@ st.markdown("""
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
-    
-    /* 🛑 إخفاء زر Manage app */
     [data-testid="manage-app-button"] { display: none !important; }
-    
     footer { display: none !important; }
     
     html, body {
@@ -137,7 +134,6 @@ st.markdown("""
         display: block;
     }
 
-    /* شريط الأدوات المخصص */
     .custom-toolbar {
         position: fixed;
         top: 15px;
@@ -171,9 +167,7 @@ st.markdown("""
         transform: scale(1.15);
     }
 
-    /* ═══════════════════════════════════════════════════════════ */
-    /* 🌟 النقاط التفاعلية (Hover Hotspots)                       */
-    /* ═══════════════════════════════════════════════════════════ */
+    /* النقاط التفاعلية */
     .hotspot-container {
         position: fixed;
         top: 0; left: 0;
@@ -189,7 +183,6 @@ st.markdown("""
         pointer-events: auto;
         cursor: pointer;
         transition: background 0.3s;
-        /* border: 2px solid red; /* لإظهار مكان الدائرة أثناء التجربة (احذفها لاحقاً) */
     }
 
     .hotspot img {
@@ -236,32 +229,26 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <div class="hotspot-container">
-    
     <div class="hotspot" style="top: 30%; left: 45%;">
         <img src="pages/album/SIRT_END_RESV.jpg" alt="سرت">
     </div>
-
     <div class="hotspot" style="top: 40%; left: 60%;">
         <img src="pages/album/AJD_RESV.jpg" alt="اجدابيا">
     </div>
-
     <div class="hotspot" style="top: 32%; left: 78%;">
         <img src="pages/album/BEN_END_RESV.jpg" alt="بنغازي">
     </div>
-
     <div class="hotspot" style="top: 65%; left: 42%;">
         <img src="pages/album/SARIR_WELLS_FEILD.jpg" alt="حقل السرير">
     </div>
-
     <div class="hotspot" style="top: 80%; left: 60%;">
         <img src="pages/album/TAZ_WELLS_FEILD.jpg" alt="حقل تازربو">
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS للأزرار — تصميم متدرج
+# 🎨 CSS للأزرار
 # ═══════════════════════════════════════════════════════════
 st.html("""
 <style>
@@ -323,6 +310,15 @@ st.html("""
         box-shadow: 0 14px 35px rgba(30, 132, 73, 1) !important;
     }
     
+    button[key="go_album"] {
+        background: linear-gradient(135deg, #2980B9 0%, #6DD5FA 50%, #FFFFFF 100%) !important;
+        box-shadow: 0 8px 25px rgba(41, 128, 185, 0.7) !important;
+        color: #000 !important;
+    }
+    button[key="go_album"]:hover {
+        box-shadow: 0 14px 35px rgba(41, 128, 185, 1) !important;
+    }
+    
     button[key="logout_main"] {
         background: linear-gradient(135deg, #C0392B 0%, #E74C3C 100%) !important;
         min-height: 55px !important;
@@ -350,6 +346,9 @@ with col_left:
     
     if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
         st.switch_page("pages/3_🗺️_Maps.py")
+    
+    if st.button("🖼️  معرض الصور (الألبوم)", key="go_album", use_container_width=True):
+        st.switch_page("pages/4_🖼️_Album.py")
     
     if st.button("🚪  تسجيل الخروج", key="logout_main", use_container_width=True):
         st.session_state.logged_in = False
