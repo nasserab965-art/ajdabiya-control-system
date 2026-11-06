@@ -72,7 +72,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام
+# 🎨 CSS العام (بدون أي إجبار للاتجاه)
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -80,7 +80,10 @@ st.markdown("""
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
+    
+    /* 🛑 إخفاء زر Manage app */
     [data-testid="manage-app-button"] { display: none !important; }
+    
     footer { display: none !important; }
     
     html, body {
@@ -134,6 +137,7 @@ st.markdown("""
         display: block;
     }
 
+    /* شريط الأدوات المخصص */
     .custom-toolbar {
         position: fixed;
         top: 15px;
@@ -166,50 +170,6 @@ st.markdown("""
         color: #F9CA24 !important;
         transform: scale(1.15);
     }
-
-    /* النقاط التفاعلية */
-    .hotspot-container {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        pointer-events: none;
-        z-index: 5;
-    }
-    
-    .hotspot {
-        position: absolute;
-        width: 60px; height: 60px;
-        border-radius: 50%;
-        pointer-events: auto;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    .hotspot img {
-        position: absolute;
-        bottom: 70px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 250px;
-        border-radius: 10px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-        border: 3px solid #F9CA24;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-        z-index: 10;
-    }
-
-    .hotspot:hover img {
-        opacity: 1;
-        visibility: visible;
-        bottom: 80px;
-    }
-    
-    .hotspot:hover {
-        background: rgba(249, 202, 36, 0.4);
-        box-shadow: 0 0 20px rgba(249, 202, 36, 0.8);
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -224,31 +184,9 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
         unsafe_allow_html=True
     )
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 النقاط التفاعلية (Hover Hotspots)
-# ═══════════════════════════════════════════════════════════
-st.markdown("""
-<div class="hotspot-container">
-    <div class="hotspot" style="top: 30%; left: 45%;">
-        <img src="pages/album/SIRT_END_RESV.jpg" alt="سرت">
-    </div>
-    <div class="hotspot" style="top: 40%; left: 60%;">
-        <img src="pages/album/AJD_RESV.jpg" alt="اجدابيا">
-    </div>
-    <div class="hotspot" style="top: 32%; left: 78%;">
-        <img src="pages/album/BEN_END_RESV.jpg" alt="بنغازي">
-    </div>
-    <div class="hotspot" style="top: 65%; left: 42%;">
-        <img src="pages/album/SARIR_WELLS_FEILD.jpg" alt="حقل السرير">
-    </div>
-    <div class="hotspot" style="top: 80%; left: 60%;">
-        <img src="pages/album/TAZ_WELLS_FEILD.jpg" alt="حقل تازربو">
-    </div>
-</div>
-""", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS للأزرار
+# 🎨 CSS للأزرار — تصميم متدرج
 # ═══════════════════════════════════════════════════════════
 st.html("""
 <style>
