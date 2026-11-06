@@ -720,16 +720,19 @@ else:
 # ═══════════════════════════════════════════════════════════
 st.header("📍 مواقع غرف التحكم - Google Maps")
 
+# تم إضافة الموقع الجديد هنا (يمكنك تغيير الاسم والإحداثيات)
 locations = {
     "خزان التجميع و الموازنة اجدابيا": (30.582070, 20.349818),
     "خزان سرت النهائى": (31.163098, 16.681146),
     "خزان بنغازى النهائى": (31.729474, 20.266646),
     "حقل آبار السرير": (27.591483, 21.601081),
     "حقل آبار تازربو": (25.553332, 21.606476),
+    "زر جديد (مثال)": (30.000000, 20.000000), # <--- أضف الإحداثيات الحقيقية هنا
 }
 
 locations_list = list(locations.items())
-cols_per_row = 3
+# جعلنا الأعمدة 4 بدلاً من 3 لكي تصغر الأزرار وتترتب بشكل أفضل
+cols_per_row = 4 
 
 for i in range(0, len(locations_list), cols_per_row):
     row_items = locations_list[i:i + cols_per_row]
@@ -738,22 +741,30 @@ for i in range(0, len(locations_list), cols_per_row):
         url = f"https://www.google.com/maps?q={lat},{lon}"
         with col:
             st.markdown(f"""
-            <a href="{url}" target="_blank" style="text-decoration:none; display:block;">
-                <button style="width:100%; padding:14px 10px;
+            <a href="{url}" target="_blank" style="text-decoration:none; display:block; margin-bottom: 10px;">
+                <button style="width:100%; padding:8px 5px; 
                     background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                    color:white; border:none; border-radius:12px;
-                    font-size:30px; font-weight:bold; cursor:pointer;
-                    box-shadow:0 4px 12px rgba(245,87,108,0.4); text-align:center;
-                    min-height:70px; line-height:1.4;">
-                    <span style="font-size:16px;">📍</span> {name}
-                    <span style="font-size:12px; opacity:0.9; display:block; margin-top:4px;">
+                    color:white; border:none; border-radius:8px;
+                    font-size:24px; font-weight:bold; cursor:pointer;
+                    box-shadow:0 3px 8px rgba(245,87,108,0.4); text-align:center;
+                    min-height:50px; line-height:1.2;">
+                    <span style="font-size:14px;">📍</span> {name}
+                    <span style="font-size:11px; opacity:0.9; display:block; margin-top:2px;">
                         ({lat:.4f}, {lon:.4f})
                     </span>
                 </button>
             </a>
             """, unsafe_allow_html=True)
+            
+# ═══════════════════════════════════════════════════════════
+# 🖼️ زر الانتقال لمعرض الصور
+# ═══════════════════════════════════════════════════════════
+st.markdown("---")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    if st.button("🖼️ الذهاب إلى معرض الصور", width="stretch", type="primary", key="go_to_album"):
+        st.switch_page("pages/4_🖼️_Album.py")
 
-st.markdown("---")       
-
+st.markdown("---")
 # ═══════════════════════════════════════════════════════════
 # 🖼️ زر الانتقال ل
