@@ -170,6 +170,53 @@ st.markdown("""
         color: #F9CA24 !important;
         transform: scale(1.15);
     }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /* 🌟 النقاط التفاعلية (Hover Hotspots)                       */
+    /* ═══════════════════════════════════════════════════════════ */
+    .hotspot-container {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        pointer-events: none;
+        z-index: 5;
+    }
+    
+    .hotspot {
+        position: absolute;
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: background 0.3s;
+        /* border: 2px solid red; /* لإظهار مكان الدائرة أثناء التجربة (احذفها لاحقاً) */
+    }
+
+    .hotspot img {
+        position: absolute;
+        bottom: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 250px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        border: 3px solid #F9CA24;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 10;
+    }
+
+    .hotspot:hover img {
+        opacity: 1;
+        visibility: visible;
+        bottom: 80px;
+    }
+    
+    .hotspot:hover {
+        background: rgba(249, 202, 36, 0.4);
+        box-shadow: 0 0 20px rgba(249, 202, 36, 0.8);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -183,6 +230,38 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
         f'<img src="data:image/jpeg;base64,{img_data}" class="map-bg"/>',
         unsafe_allow_html=True
     )
+
+# ═══════════════════════════════════════════════════════════
+# 🌟 النقاط التفاعلية (Hover Hotspots)
+# ═══════════════════════════════════════════════════════════
+st.markdown("""
+<div class="hotspot-container">
+    <!-- إحداثيات سرت -->
+    <div class="hotspot" style="top: 30%; left: 45%;">
+        <img src="app/static/sirt.jpg" alt="سرت">
+    </div>
+
+    <!-- إحداثيات اجدابيا -->
+    <div class="hotspot" style="top: 40%; left: 60%;">
+        <img src="app/static/ajdabiya.jpg" alt="اجدابيا">
+    </div>
+
+    <!-- إحداثيات بنغازي -->
+    <div class="hotspot" style="top: 32%; left: 78%;">
+        <img src="app/static/benghazi.jpg" alt="بنغازي">
+    </div>
+
+    <!-- إحداثيات حقل السرير -->
+    <div class="hotspot" style="top: 65%; left: 42%;">
+        <img src="app/static/sirir.jpg" alt="حقل السرير">
+    </div>
+
+    <!-- إحداثيات حقل تازربو -->
+    <div class="hotspot" style="top: 80%; left: 60%;">
+        <img src="app/static/tazerbo.jpg" alt="حقل تازربو">
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════
