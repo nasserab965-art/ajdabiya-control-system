@@ -445,25 +445,32 @@ with tab2:
 
     if st.session_state.streaming:
         # ═══════════════════════════════════════════════════════════
-        # 🌟 محاولة فتح الكاميرا من المنافذ 0 إلى 5 تلقائياً
+        # 🌟 محاولة فتح الكاميرا من المنافذ 0 إلى 10 تلقائياً
         # ═══════════════════════════════════════════════════════════
         camera_found = False
         cap = None
         
-        for i in range(10):  # جرب المنافذ 0, 1, 2, 3, 4, 5
+        for i in range(10):
+            # المحاولة الأولى: باستخدام DSHOW (للويندوز)
             temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            
+            # إذا لم يفتح، جرب الطريقة الافتراضية
+            if not temp_cap.isOpened():
+                temp_cap.release()
+                temp_cap = cv2.VideoCapture(i)
+            
             if temp_cap.isOpened():
                 ret, test_frame = temp_cap.read()
                 if ret and test_frame is not None:
                     cap = temp_cap
                     camera_found = True
-                    st.success(f"✅ تم العثور على الكاميرا على المنفذ: {i}")
+                    st.success(f"✅ تم العثور على اللاقط على المنفذ: {i}")
                     break
                 else:
                     temp_cap.release()
         
         if not camera_found:
-            st.error("❌ لم يتم العثور على أي كاميرا متصلة. تأكد من توصيل اللاقط بشكل صحيح.")
+            st.error("❌ لم يتم العثور على اللاقط. تأكد من إغلاق أي برنامج آخر يستخدمه، أو جرب توصيله بمنفذ USB آخر.")
         else:
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
