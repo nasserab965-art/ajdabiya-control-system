@@ -49,11 +49,8 @@ st.markdown("""
 # ═══════════════════════════════════════════════════════════
 # إعدادات المسارات (الشبكة الداخلية)
 # ═══════════════════════════════════════════════════════════
-# مسار ملف الـ PDF في الشبكة (الذي ينتجه الماكرو)
 NETWORK_PDF_PATH = r'\\CTRL-ROOM\ctsh\Daily_rep.pdf'
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
-
-# مسار ملف الإكسيل (لقراءات الخطوط)
 MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
@@ -139,7 +136,7 @@ def convert_pdf_to_image():
     try:
         doc = fitz.open(NETWORK_PDF_PATH)
         page = doc[0]
-        mat = fitz.Matrix(3, 3) # زيادة الجودة
+        mat = fitz.Matrix(3, 3)
         pix = page.get_pixmap(matrix=mat, alpha=False)
         
         pix.save(LOCAL_IMAGE_PATH)
@@ -339,18 +336,13 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    # ═══════════════════════════════════════════════════════════
-    # 🌟 التجديد التلقائي من الشبكة (PDF) 🌟
-    # ═══════════════════════════════════════════════════════════
     if os.path.exists(NETWORK_PDF_PATH):
         net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
         
         if not os.path.exists(LOCAL_IMAGE_PATH):
-            # إذا لم توجد صورة، أنشئها
             with st.spinner('🔄 جاري تجهيز التقرير...'):
                 convert_pdf_to_image()
         else:
-            # إذا وجدت صورة، تحقق إذا كان الـ PDF أحدث
             img_mtime = os.path.getmtime(LOCAL_IMAGE_PATH)
             if net_mtime > img_mtime:
                 with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري التحديث...'):
@@ -440,50 +432,45 @@ with tab1:
                 render_tank_stats(df_filtered)
                  
 with tab2:
-    st.markdown("### 📹 كاميرات المراقبة")
+    st.markdown("### 📹 البث المباشر (لاقط الصور)")
     
-    class VideoTransformer(VideoTransformerBase):
-        def __init__(self, camera_url):
-            self.camera_url = camera_url
-            self.cap = None
+    # ═══════════════════════════════════════════════════════════
+    # 🌟 الحل النهائي لعرض لاقط الصور بدون انقطاع
+    # ═══════════════════════════════════════════════════════════
+    # ملاحظة: قد يحتاج لاقط الصور إلى تغيير الرقم (0) إلى (1) أو (2)
+    CAPTURE_INDEX = 0 
+    
+    frame_placeholder = st.empty()
+    
+    if 'streaming' not in st.session_state:
+        st.session_state.streaming = True
         
-        def recv(self, frame):
-            img = frame.to_ndarray(format="bgr24")
-            if self.cap is None or not self.cap.isOpened():
-                self.cap = cv2.VideoCapture(self.camera_url)
-                if not self.cap.isOpened():
-                    img = np.zeros((480, 640, 3), dtype=np.uint8)
-                    cv2.putText(img, "❌ لا يمكن الاتصال", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-                    return av.VideoFrame.from_ndarray(img, format="bgr24")
-            ret, frame = self.cap.read()
-            if not ret:
-                self.cap.release()
-                self.cap = cv2.VideoCapture(self.camera_url)
-                return frame
-            return av.VideoFrame.from_ndarray(frame, format="bgr24")
-        
-        def __del__(self):
-            if self.cap is not None:
-                self.cap.release()
-    
-    CAMERAS = {"كاميرا 1 - المدخل": "rtsp://admin:password@192.168.1.100:554/stream1"}
-    
-    if st.button("🔄 تحديث البث", width='stretch'):
+    if st.button("🛑 إيقاف / تشغيل البث"):
+        st.session_state.streaming = not st.session_state.streaming
         st.rerun()
-    
-    cols = st.columns(2)
-    for idx, (name, url) in enumerate(CAMERAS.items()):
-        with cols[idx % 2]:
-            st.subheader(f"📷 {name}")
-            try:
-                webrtc_streamer(
-                    key=f"cam_{idx}",
-                    video_processor_factory=lambda: VideoTransformer(url),
-                    rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
-                    media_stream_constraints={"video": True, "audio": False},
-                )
-            except Exception as e:
-                st.error(f"❌ {e}")
+
+    if st.session_state.streaming:
+        cap = cv2.VideoCapture(CAPTURE_INDEX, cv2.CAP_DSHOW)
+        
+        if not cap.isOpened():
+            st.error(f"❌ لا يمكن فتح لاقط الصور على المنفذ {CAPTURE_INDEX}. جرب تغيير الرقم في الكود.")
+        else:
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            
+            ret, frame = cap.read()
+            if ret:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
+                
+                if st.button("🔄 تحديث الصورة"):
+                    st.rerun()
+            else:
+                st.warning("⚠️ تم فتح اللاقط لكن لم يتم استلام صورة. تأكد من توصيل مصدر الفيديو.")
+            
+            cap.release()
+    else:
+        st.info("اضغط على زر التشغيل لعرض البث.")
             
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
