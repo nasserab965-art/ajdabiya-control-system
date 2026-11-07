@@ -1,5 +1,5 @@
 """
-الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط
+الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة الشبكة الداخلية)
 """
 import sys
 import os
@@ -20,8 +20,6 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import fitz  # PyMuPDF
-import requests
-from dateutil import parser
 
 # الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
@@ -49,10 +47,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# إعدادات
+# إعدادات المسارات (الشبكة الداخلية)
 # ═══════════════════════════════════════════════════════════
-PDF_FILE_PATH = "Daily_rep.pdf"
-SHEET_NAME = None
+# مسار ملف الـ PDF في الشبكة (الذي ينتجه الماكرو)
+NETWORK_PDF_PATH = r'\\CTRL-ROOM\ctsh\Daily_rep.pdf'
+LOCAL_IMAGE_PATH = 'Daily_rep.png'
+
+# مسار ملف الإكسيل (لقراءات الخطوط)
 MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
@@ -67,7 +68,7 @@ MAINJOB_SHEETS = [
 MIN_DATE = '2025-01-01'
 
 # ═══════════════════════════════════════════════════════════
-# دوال التحويل
+# دوال معالجة الصور
 # ═══════════════════════════════════════════════════════════
 def optimize_image(image_path, max_width=2500):
     try:
@@ -127,49 +128,30 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     except Exception:
         pass
 
-def convert_pdf_to_image(pdf_path, scale=3):
-    """تحويل الـ PDF إلى صورة جديدة باسم فريد وإرجاع اسم الملف"""
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    new_image_path = f'Daily_rep_{timestamp_str}.png'
+# ═══════════════════════════════════════════════════════════
+# دوال تحويل الـ PDF إلى صورة
+# ═══════════════════════════════════════════════════════════
+def convert_pdf_to_image():
+    """يقرأ ملف الـ PDF من الشبكة ويحوله إلى صورة"""
+    if not os.path.exists(NETWORK_PDF_PATH):
+        return False, f"❌ لا يمكن الوصول لملف الـ PDF في المسار:\n`{NETWORK_PDF_PATH}`"
     
     try:
-        doc = fitz.open(pdf_path)
+        doc = fitz.open(NETWORK_PDF_PATH)
         page = doc[0]
-        mat = fitz.Matrix(scale, scale)
+        mat = fitz.Matrix(3, 3) # زيادة الجودة
         pix = page.get_pixmap(matrix=mat, alpha=False)
-        pix.save(new_image_path)
+        
+        pix.save(LOCAL_IMAGE_PATH)
         doc.close()
         
-        optimize_image(new_image_path, max_width=2500)
-        add_timestamp_to_image(new_image_path)
-        add_watermark_to_image(new_image_path, text="غرفة تحكم اجدابيا")
+        optimize_image(LOCAL_IMAGE_PATH, max_width=2500)
+        add_timestamp_to_image(LOCAL_IMAGE_PATH)
+        add_watermark_to_image(LOCAL_IMAGE_PATH, text="غرفة تحكم اجدابيا")
         
-        for old_img in glob.glob('Daily_rep_*.png'):
-            if old_img != new_image_path:
-                try:
-                    os.remove(old_img)
-                except:
-                    pass
-                    
-        return True, "✅ تم تحويل التقرير اليومي إلى صورة بنجاح!", new_image_path
+        return True, "✅ تم تحديث صورة التقرير من الشبكة بنجاح!"
     except Exception as e:
-        return False, f"❌ خطأ أثناء تحويل الـ PDF: {e}", None
-
-
-# ═══════════════════════════════════════════════════════════
-# 🔄 دالة التجديد التلقائي
-# ═══════════════════════════════════════════════════════════
-@st.cache_data(ttl=60, show_spinner=False)
-def get_latest_pdf_commit_date():
-    try:
-        url = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/commits?path=Daily_rep.pdf&page=1&per_page=1"
-        response = requests.get(url)
-        if response.status_code == 200 and len(response.json()) > 0:
-            last_commit_date_str = response.json()[0]['commit']['committer']['date']
-            return parser.parse(last_commit_date_str).replace(tzinfo=None)
-    except Exception:
-        pass
-    return None
+        return False, f"❌ خطأ أثناء التحويل: {e}"
 
 # ═══════════════════════════════════════════════════════════
 # 📊 دوال قراءات الخطوط
@@ -328,105 +310,82 @@ st.title("📋 التقرير اليومي + 📹 المباشر")
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
 with tab1:
-    # ═══════════════════════════════════════════════════════════
-    # 🌟 الترويسة المنسقة (بدون أخطاء)
-    # ═══════════════════════════════════════════════════════════
     st.markdown("""
-   <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%);
-    border-radius: 22px; padding: 35px 40px; margin: 20px 0 30px 0;
-    border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), inset 0 0 50px rgba(74, 144, 217, 0.08);
-    direction: rtl; text-align: center;">
-    <h1 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
-    <h2 style="color: #F9CA24; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">الإدارة العامة للإتصالات والتحكم وتقنية المعلومات</h2>
-    <h3 style="color: #ffffff; font-size: 34px; margin: 0 0 20px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">إدارة الإتصالات والتحكم</h3>
-    <h4 style="color: #FFFFFF; font-size: 26px; margin: 0 0 30px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h4>
-    <p style="font-size: 20px; color: #E8F4FD; line-height: 2.2; margin: 0 auto; font-family: Arial, sans-serif; max-width: 950px;">
-        <strong style="color: #AFFF00; font-size: 22px;">بمشيئة الله وفضله</strong> 
-        في هذا المشروع الضخم <strong style="color: #F9CA24;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
-        " فأنا <strong style="color: #F9CA24;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
-        <strong style="color: #AFFF00;">النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع.</strong>"
-    </p>
-    <p style="font-size: 19px; color: #FFFFFF; margin: 30px 0 0 0; font-style: italic; font-family: Arial, sans-serif;">
-       <strong style="color: #AFFF00; font-size: 30px;"> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong> 
-    </p>
-    <p style="text-align: left; color: #F9CA24; font-size: 17px; margin: 25px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
-</div>
-""", unsafe_allow_html=True)
-
+    <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%); border-radius: 22px; padding: 45px 50px; margin: 20px 0 30px 0; border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08); direction: rtl; text-align: center;">
+        <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
+        <h2 style="color: #FFFFFF; font-size: 38px; margin: 0 0 35px 0; text-shadow: 1px 1px 5px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">📍 غرفة تحكم اجدابيا</h2>
+        <p style="font-size: 28px; color: #E8F4FD; line-height: 2.3; margin: 0 auto; font-weight: 400; font-family: Arial, sans-serif; max-width: 1100px;">
+            <strong style="color: #AFFF00; font-size: 32px;">بمشيئة الله وفضله</strong> 
+            في هذا المشروع الضخم 
+            <strong style="color: #F9CA24; font-size: 30px;">( مشروع النهر الصناعى - المرحلة الأولى )</strong>، 
+            " فأنا <strong style="color: #F9CA24; font-size: 30px;">( موقع خزان التجميع والموازنة - اجدابيا )</strong> 
+            <strong style="color: #AFFF00; font-size: 28px;">
+            النقطة التي تتلاقى فيها كل الإمدادات، والعين التي ترى أول خيط من خلل في شبكة التوزيع. 
+            مكاني ليس مجرد موقع عمل، بل هو غرفة التحكم التي تبدأ منها رحلة استقرار المياه، 
+            وتنتهي إليها أي إشارة خطر.
+            </strong>"
+        </p>
+        <p style="font-size: 26px; color: #FFFFFF; margin: 35px 0 0 0; font-style: italic; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); font-family: Arial, sans-serif;"><strong> ❤️ مثلما يعكس نبض القلب صحة الجسد، تعكس قراءاتي صحة شبكة توزيع المياه بأكملها ❤️ </strong></p>
+        <p style="text-align: left; color: #F9CA24; font-size: 24px; margin: 30px 0 0 0; font-weight: bold; font-family: Arial, sans-serif;">✍️ م. ناصر</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div style="background: rgba(74, 144, 217, 0.1); border-right: 4px solid #4A90D9; border-radius: 8px; padding: 12px 20px; margin-bottom: 15px; direction: rtl; font-family: Arial, sans-serif;">
-        <span style="color: #4A90D9; font-size: 34px; font-weight: bold;">📡 المصدر:</span>
-        <code style="color: #AFFF00; font-size: 34px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">{PDF_FILE_PATH}</code>
+        <span style="color: #4A90D9; font-size: 16px; font-weight: bold;">📡 المصدر:</span>
+        <code style="color: #AFFF00; font-size: 15px; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; margin-right: 10px;">{NETWORK_PDF_PATH}</code>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    last_commit_date = get_latest_pdf_commit_date()
-    existing_images = sorted(glob.glob('Daily_rep_*.png'), reverse=True)
-    current_image_path = existing_images[0] if existing_images else None
+    # ═══════════════════════════════════════════════════════════
+    # 🌟 التجديد التلقائي من الشبكة (PDF) 🌟
+    # ═══════════════════════════════════════════════════════════
+    if os.path.exists(NETWORK_PDF_PATH):
+        net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
+        
+        if not os.path.exists(LOCAL_IMAGE_PATH):
+            # إذا لم توجد صورة، أنشئها
+            with st.spinner('🔄 جاري تجهيز التقرير...'):
+                convert_pdf_to_image()
+        else:
+            # إذا وجدت صورة، تحقق إذا كان الـ PDF أحدث
+            img_mtime = os.path.getmtime(LOCAL_IMAGE_PATH)
+            if net_mtime > img_mtime:
+                with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري التحديث...'):
+                    convert_pdf_to_image()
     
-    trigger_conversion = False
-    
-    if not current_image_path:
-        trigger_conversion = True
-    elif last_commit_date:
-        try:
-            img_time_str = current_image_path.replace('Daily_rep_', '').replace('.png', '')
-            img_time = datetime.strptime(img_time_str, "%Y%m%d_%H%M%S")
-            if last_commit_date > img_time:
-                trigger_conversion = True
-        except:
-            trigger_conversion = True
-
-    if trigger_conversion and os.path.exists(PDF_FILE_PATH):
-        with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري تجهيز التقرير...'):
-            success, msg, new_img = convert_pdf_to_image(PDF_FILE_PATH)
-            if success:
-                current_image_path = new_img
-                st.toast(msg, icon="✅")
-            else:
-                st.error(msg)
-                
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
-            with st.spinner('⏳ جاري تحويل الـ PDF إلى صورة...'):
-                if os.path.exists(PDF_FILE_PATH):
-                    success, msg, new_img = convert_pdf_to_image(PDF_FILE_PATH)
-                    if success:
-                        current_image_path = new_img
-                        st.success(msg)
-                        st.rerun()
-                    else:
-                        st.error(msg)
+            with st.spinner('⏳ جاري التحويل...'):
+                ok, msg = convert_pdf_to_image()
+                if ok:
+                    st.success(msg)
+                    st.rerun()
                 else:
-                    st.error(f"❌ لم يتم العثور على الملف {PDF_FILE_PATH}")
+                    st.error(msg)
     
     with col2:
-        if current_image_path and os.path.exists(current_image_path):
-            try:
-                img_time_str = current_image_path.replace('Daily_rep_', '').replace('.png', '')
-                img_time = datetime.strptime(img_time_str, "%Y%m%d_%H%M%S")
-                st.info(f"📅 آخر تحديث للصورة: {img_time.strftime('%Y-%m-%d %H:%M')}")
-            except:
-                st.info("📅 الصورة جاهزة")
+        if os.path.exists(LOCAL_IMAGE_PATH):
+            mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
+            st.info(f"📅 آخر تحديث للصورة: {mtime.strftime('%Y-%m-%d %H:%M')}")
     
     st.markdown("---")
     
-    if current_image_path and os.path.exists(current_image_path):
-        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2200, 100, key="img_w")
-        st.image(current_image_path, width=img_width)
+    if os.path.exists(LOCAL_IMAGE_PATH):
+        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 1400, 100, key="img_w")
+        st.image(LOCAL_IMAGE_PATH, width=img_width)
         
-        with open(current_image_path, "rb") as f:
+        with open(LOCAL_IMAGE_PATH, "rb") as f:
             st.download_button(
                 "🖼️ تحميل الصورة PNG", data=f.read(),
-                file_name=current_image_path,
+                file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
                 mime='image/png', width="stretch"
             )
     else:
-        st.warning("⏳ الصورة غير موجودة. اضغط زر إعادة التوليد لإنشائها من ملف الـ PDF.")
+        st.warning("⏳ جاري تحضير التقرير... اضغط زر إعادة التوليد")
 
     st.markdown("---")
     st.markdown("## 📊 قراءات الخطوط - 2026 فما بعد")
@@ -446,46 +405,11 @@ with tab1:
             chart_type = chart_type_map[selected_label]
         
         with ctrl_col2:
-            # ═══════════════════════════════════════════════════════════
-            # 🌟 خوارزمية تحديد الفترة الافتراضية (ذكية وتتجاهل التواريخ المستقبلية)
-            # ═══════════════════════════════════════════════════════════
-            today = datetime.now().date()
-            current_year = today.year
-            
-            # التأكد من أن الحد الأقصى للعرض لا يتجاوز تاريخ اليوم الفعلي
-            max_available_date = df_tank[DATE_COL].max().date()
-            max_date = min(today, max_available_date)
-            
-            # الحد الأدنى للعرض
             min_date = df_tank[DATE_COL].min().date()
-            
-            # تحديد تاريخ البداية
-            start_of_current_year = date(current_year, 1, 1)
-            
-            if today.day <= 7:
-                default_start = date(current_year, today.month, 1)
-            else:
-                default_start = max_date - pd.Timedelta(days=15)
-                if isinstance(default_start, pd.Timestamp):
-                    default_start = default_start.date()
-            
-            if default_start < start_of_current_year:
-                default_start = start_of_current_year
-                
-            default_start = max(min_date, default_start)
-            
-            if default_start > max_date:
-                default_start = max(min_date, max_date - pd.Timedelta(days=15))
-                if isinstance(default_start, pd.Timestamp):
-                    default_start = default_start.date()
-
-            date_range = st.date_input(
-                "📅 الفترة:",
-                value=(default_start, max_date),
-                min_value=min_date,
-                max_value=max_available_date, # نسمح باختيار أي تاريخ في الإكسيل يدوياً
-                key="date_range_filter",
-            )
+            max_date = df_tank[DATE_COL].max().date()
+            default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
+            if isinstance(default_start, pd.Timestamp): default_start = default_start.date()
+            date_range = st.date_input("📅 الفترة:", value=(default_start, max_date), min_value=min_date, max_value=max_date, key="date_range_filter")
         
         with ctrl_col3:
             st.write("")
@@ -518,48 +442,54 @@ with tab1:
 with tab2:
     st.markdown("### 📹 كاميرات المراقبة")
     
-    # رابط الكاميرا (استبدل هذا برابط الكاميرا الحقيقي الخاص بك)
-    CAMERA_URL = "rtsp://admin:password@192.168.1.100:554/stream1"
+    class VideoTransformer(VideoTransformerBase):
+        def __init__(self, camera_url):
+            self.camera_url = camera_url
+            self.cap = None
+        
+        def recv(self, frame):
+            img = frame.to_ndarray(format="bgr24")
+            if self.cap is None or not self.cap.isOpened():
+                self.cap = cv2.VideoCapture(self.camera_url)
+                if not self.cap.isOpened():
+                    img = np.zeros((480, 640, 3), dtype=np.uint8)
+                    cv2.putText(img, "❌ لا يمكن الاتصال", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+                    return av.VideoFrame.from_ndarray(img, format="bgr24")
+            ret, frame = self.cap.read()
+            if not ret:
+                self.cap.release()
+                self.cap = cv2.VideoCapture(self.camera_url)
+                return frame
+            return av.VideoFrame.from_ndarray(frame, format="bgr24")
+        
+        def __del__(self):
+            if self.cap is not None:
+                self.cap.release()
     
-    # زر لتشغيل/إيقاف البث
-    if 'cam_running' not in st.session_state:
-        st.session_state.cam_running = False
-        
-    if st.button("🔄 تشغيل / إيقاف البث", width='stretch'):
-        st.session_state.cam_running = not st.session_state.cam_running
+    CAMERAS = {"كاميرا 1 - المدخل": "rtsp://admin:password@192.168.1.100:554/stream1"}
+    
+    if st.button("🔄 تحديث البث", width='stretch'):
         st.rerun()
-        
-    if st.session_state.cam_running:
-        # إنشاء مكان لعرض الفيديو
-        frame_placeholder = st.empty()
-        
-        # فتح الكاميرا
-        cap = cv2.VideoCapture(CAMERA_URL)
-        
-        if not cap.isOpened():
-            st.error("❌ لا يمكن الاتصال بالكاميرا. تأكد من الرابط أو من أن الكاميرا تعمل.")
-        else:
-            st.success("✅ تم الاتصال بالكاميرا بنجاح!")
-            # قراءة إطار واحد فقط (لتجنب إبطاء التطبيق)
-            ret, frame = cap.read()
-            if ret:
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-            else:
-                st.warning("⚠️ تم الاتصال ولكن لم يتم استلام صورة.")
-            
-            cap.release()
-            
-            # زر لتحديث الصورة يدوياً
-            if st.button("🔄 تحديث الصورة"):
-                st.rerun()
-    else:
-        st.info("اضغط على زر التشغيل لعرض البث.")
+    
+    cols = st.columns(2)
+    for idx, (name, url) in enumerate(CAMERAS.items()):
+        with cols[idx % 2]:
+            st.subheader(f"📷 {name}")
+            try:
+                webrtc_streamer(
+                    key=f"cam_{idx}",
+                    video_processor_factory=lambda: VideoTransformer(url),
+                    rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
+                    media_stream_constraints={"video": True, "audio": False},
+                )
+            except Exception as e:
+                st.error(f"❌ {e}")
             
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
 st.markdown("---")
+st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
