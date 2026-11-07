@@ -434,12 +434,6 @@ with tab1:
 with tab2:
     st.markdown("### 📹 البث المباشر (لاقط الصور)")
     
-    # ═══════════════════════════════════════════════════════════
-    # 🌟 الحل النهائي لعرض لاقط الصور بدون انقطاع
-    # ═══════════════════════════════════════════════════════════
-    # ملاحظة: قد يحتاج لاقط الصور إلى تغيير الرقم (0) إلى (1) أو (2)
-    CAPTURE_INDEX = 0
-    
     frame_placeholder = st.empty()
     
     if 'streaming' not in st.session_state:
@@ -450,10 +444,26 @@ with tab2:
         st.rerun()
 
     if st.session_state.streaming:
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # جرب 0، 1، 2
+        # ═══════════════════════════════════════════════════════════
+        # 🌟 محاولة فتح الكاميرا من المنافذ 0 إلى 5 تلقائياً
+        # ═══════════════════════════════════════════════════════════
+        camera_found = False
+        cap = None
         
-        if not cap.isOpened():
-            st.error(f"❌ لا يمكن فتح لاقط الصور على المنفذ {CAPTURE_INDEX}. جرب تغيير الرقم في الكود.")
+        for i in range(6):  # جرب المنافذ 0, 1, 2, 3, 4, 5
+            temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            if temp_cap.isOpened():
+                ret, test_frame = temp_cap.read()
+                if ret and test_frame is not None:
+                    cap = temp_cap
+                    camera_found = True
+                    st.success(f"✅ تم العثور على الكاميرا على المنفذ: {i}")
+                    break
+                else:
+                    temp_cap.release()
+        
+        if not camera_found:
+            st.error("❌ لم يتم العثور على أي كاميرا متصلة. تأكد من توصيل اللاقط بشكل صحيح.")
         else:
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
