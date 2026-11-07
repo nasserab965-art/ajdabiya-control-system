@@ -1,9 +1,10 @@
 """
-الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة الشبكة الداخلية)
+الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة ذكية)
 """
 import sys
 import os
 import glob
+import platform  # للتحقق من نظام التشغيل (سحابة أم محلي)
 
 # ⚠️ يجب أن يكون هذا السطر في البداية وقبل أي استيراد آخر
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +19,6 @@ import av
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import fitz  # PyMuPDF
 
 # الآن يمكنك استيراد الملف المشترك بأمان
@@ -45,6 +45,12 @@ st.markdown("""
     footer { visibility: hidden !important; }
 </style>
 """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════
+# 🔍 التحقق من بيئة التشغيل (سحابة أم محلي)
+# ═══════════════════════════════════════════════════════════
+# السحابة تعمل على Linux، بينما جهازك يعمل على Windows
+is_local_network = platform.system() == "Windows"
 
 # ═══════════════════════════════════════════════════════════
 # إعدادات المسارات (الشبكة الداخلية)
@@ -136,7 +142,7 @@ def convert_pdf_to_image():
     try:
         doc = fitz.open(NETWORK_PDF_PATH)
         page = doc[0]
-        mat = fitz.Matrix(3, 3)
+        mat = fitz.Matrix(3, 3) 
         pix = page.get_pixmap(matrix=mat, alpha=False)
         
         pix.save(LOCAL_IMAGE_PATH)
@@ -304,7 +310,16 @@ st.markdown("---")
 # ═══════════════════════════════════════════════════════════
 st.title("📋 التقرير اليومي + 📹 المباشر")
 
-tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
+# ═══════════════════════════════════════════════════════════
+# 🌟 التبويبات الذكية (إخفاء الكاميرا على السحابة)
+# ═══════════════════════════════════════════════════════════
+if is_local_network:
+    # على الشبكة الداخلية: نعرض التبويبين
+    tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
+else:
+    # على السحابة: نعرض التبويب الأول فقط (بدون كاميرا)
+    tab1 = st.tabs(["📋 التقرير اليومي"])[0]
+    tab2 = None
 
 with tab1:
     st.markdown("""
@@ -336,6 +351,9 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
+    # ═══════════════════════════════════════════════════════════
+    # 🌟 التجديد التلقائي من الشبكة (PDF) 🌟
+    # ═══════════════════════════════════════════════════════════
     if os.path.exists(NETWORK_PDF_PATH):
         net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
         
@@ -430,61 +448,74 @@ with tab1:
             if show_stats:
                 st.markdown("### 📈 إحصائيات سريعة لكل خط")
                 render_tank_stats(df_filtered)
-                 
-with tab2:
-    st.markdown("### 📹 البث المباشر (لاقط الصور)")
-    
-    frame_placeholder = st.empty()
-    
-    if 'streaming' not in st.session_state:
-        st.session_state.streaming = True
-        
-    if st.button("🛑 إيقاف / تشغيل البث"):
-        st.session_state.streaming = not st.session_state.streaming
-        st.rerun()
 
-    if st.session_state.streaming:
-        # المحاولة باستخدام OpenCV مع تأخير بسيط
-        camera_found = False
-        cap = None
+# ═══════════════════════════════════════════════════════════
+# تبويب الكاميرا (يعمل فقط على الشبكة الداخلية)
+# ═══════════════════════════════════════════════════════════
+if is_local_network and tab2 is not None:
+    with tab2:
+        st.markdown("### 📹 البث المباشر (لاقط الصور)")
         
-        for i in range(5):
-            temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
-            
-            if temp_cap.isOpened():
-                # انتظر ثانية لكي يجهز اللاقط
-                import time
-                time.sleep(1)
-                
-                ret, test_frame = temp_cap.read()
-                if ret and test_frame is not None:
-                    cap = temp_cap
-                    camera_found = True
-                    st.success(f"✅ تم العثور على اللاقط على المنفذ: {i}")
-                    break
-                else:
-                    temp_cap.release()
+        frame_placeholder = st.empty()
         
-        if not camera_found:
-            st.error("❌ لم يتم العثور على اللاقط. تأكد من إغلاق أي برنامج آخر يستخدمه.")
-        else:
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        if 'streaming' not in st.session_state:
+            st.session_state.streaming = True
             
-            ret, frame = cap.read()
-            if ret:
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-                
-                if st.button("🔄 تحديث الصورة"):
-                    st.rerun()
+        if st.button("🛑 إيقاف / تشغيل البث"):
+            st.session_state.streaming = not st.session_state.streaming
+            st.rerun()
+
+        if st.session_state.streaming:
+            import time
+            
+            camera_found = False
+            cap = None
+            
+            # 1. البحث عن اللاقط (من 0 إلى 5)
+            for i in range(6):
+                temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+                if temp_cap.isOpened():
+                    time.sleep(1)
+                    ret, test_frame = temp_cap.read()
+                    if ret and test_frame is not None:
+                        cap = temp_cap
+                        camera_found = True
+                        st.success(f"✅ تم الاتصال باللاقط على المنفذ: {i}")
+                        break
+                    else:
+                        temp_cap.release()
+            
+            if not camera_found:
+                st.error("❌ لم يتم العثور على اللاقط. تأكد من توصيله أو من إغلاق أي برنامج آخر يستخدمه.")
             else:
-                st.warning("⚠️ تم فتح اللاقط لكن لم يتم استلام صورة. تأكد من توصيل كابل HDMI.")
-            
-            cap.release()
-    else:
-        st.info("اضغط على زر التشغيل لعرض البث.")
-            
+                # محاولة طلب دقة أعلى (مع الحماية من الانهيار)
+                try:
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+                    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+                except Exception:
+                    pass
+                
+                actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                st.info(f"📏 الدقة الفعلية للبث: {int(actual_width)} x {int(actual_height)}")
+
+                # 2. عرض الفيديو في حلقة مستمرة
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        st.warning("⚠️ انقطع البث.")
+                        break
+                        
+                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
+                    
+                    time.sleep(0.05) 
+                    
+                cap.release()
+        else:
+            st.info("اضغط على زر التشغيل لعرض البث.")
+
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
