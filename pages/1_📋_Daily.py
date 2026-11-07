@@ -301,16 +301,26 @@ col_title, col_btn = st.columns([3, 1])
 with col_title:
     st.title("📋 التقرير اليومي + 📹 المباشر")
 with col_btn:
-    st.write("") # مسافة بسيطة لضبط المحاذاة
+    st.write("")
     st.write("")
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
         st.switch_page("app_main.py")
+
+# ═══════════════════════════════════════════════════════════
+# 🌟 عنوان البث المباشر على اليمين (فوق التبويبات)
+# ═══════════════════════════════════════════════════════════
+st.markdown("""
+<div style="text-align: right; direction: rtl; margin-bottom: -15px;">
+    <h3 style="color: #F9CA24; font-family: Arial; font-weight: bold;">📹 البث المباشر (لقطة كل 30 ثانية)</h3>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
 with tab1:
+    # ... (نفس كود التقرير اليومي) ...
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%); border-radius: 22px; padding: 45px 50px; margin: 20px 0 30px 0; border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08); direction: rtl; text-align: center;">
         <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
@@ -457,8 +467,7 @@ with tab1:
 
 with tab2:
     if is_local_network:
-        st.markdown("### 📹 البث المباشر (لاقط الصور)")
-        
+        # تم إزالة العنوان من هنا لأنه أصبح فوق التبويبات
         frame_placeholder = st.empty()
         
         if 'streaming' not in st.session_state:
@@ -516,7 +525,7 @@ with tab2:
 
     else:
         # ====== وضع السحابة: عرض الصورة باستخدام GitHub API (Base64) ======
-        st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
+        # تم إزالة العنوان من هنا لأنه أصبح فوق التبويبات
         
         st_autorefresh(interval=30000, key="camera_refresh")
         
