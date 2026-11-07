@@ -521,24 +521,37 @@ with tab2:
         else:
             st.info("اضغط على زر التشغيل لعرض البث.")
 
-    else:
+       else:
         # ====== وضع السحابة: عرض الصورة المرفوعة من GitHub ======
         st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
         
         from io import BytesIO
+        import time
         
+        # رابط الصورة من GitHub
         GITHUB_RAW_URL = "https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/live_camera.jpg"
         
+        # حاوية لعرض الصورة
+        image_placeholder = st.empty()
+        
+        # عرض الصورة
         try:
-            response = requests.get(GITHUB_RAW_URL)
+            # نضيف معامل عشوائي لكسر الكاش (Cache Busting)
+            response = requests.get(GITHUB_RAW_URL + "?t=" + str(time.time()), timeout=10)
             if response.status_code == 200:
                 img = Image.open(BytesIO(response.content))
-                st.image(img, use_container_width=True)
-                st.info("⏱️ يتم تحديث هذه الصورة كل 30 ثانية من الكاميرا المحلية.")
+                image_placeholder.image(img, use_container_width=True)
+                st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
             else:
                 st.warning("⏳ الصورة غير متوفرة حالياً. قد يكون سكربت الالتقاط متوقفاً.")
         except Exception as e:
             st.error(f"خطأ في جلب الصورة: {e}")
+            
+        # ═══════════════════════════════════════════════════════════
+        # 🌟 حيلة التحديث التلقائي كل 30 ثانية (بدون تدخل المستخدم)
+        # ═══════════════════════════════════════════════════════════
+        time.sleep(30)
+        st.rerun()
 
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
