@@ -518,48 +518,43 @@ with tab1:
 with tab2:
     st.markdown("### 📹 كاميرات المراقبة")
     
-    class VideoTransformer(VideoTransformerBase):
-        def __init__(self, camera_url):
-            self.camera_url = camera_url
-            self.cap = None
-        
-        def recv(self, frame):
-            img = frame.to_ndarray(format="bgr24")
-            if self.cap is None or not self.cap.isOpened():
-                self.cap = cv2.VideoCapture(self.camera_url)
-                if not self.cap.isOpened():
-                    img = np.zeros((480, 640, 3), dtype=np.uint8)
-                    cv2.putText(img, "❌ لا يمكن الاتصال", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-                    return av.VideoFrame.from_ndarray(img, format="bgr24")
-            ret, frame = self.cap.read()
-            if not ret:
-                self.cap.release()
-                self.cap = cv2.VideoCapture(self.camera_url)
-                return frame
-            return av.VideoFrame.from_ndarray(frame, format="bgr24")
-        
-        def __del__(self):
-            if self.cap is not None:
-                self.cap.release()
+    # رابط الكاميرا (استبدل هذا برابط الكاميرا الحقيقي الخاص بك)
+    CAMERA_URL = "rtsp://admin:password@192.168.1.100:554/stream1"
     
-    CAMERAS = {"كاميرا 1 - المدخل": "rtsp://admin:password@192.168.1.100:554/stream1"}
-    
-    if st.button("🔄 تحديث البث", width='stretch'):
+    # زر لتشغيل/إيقاف البث
+    if 'cam_running' not in st.session_state:
+        st.session_state.cam_running = False
+        
+    if st.button("🔄 تشغيل / إيقاف البث", width='stretch'):
+        st.session_state.cam_running = not st.session_state.cam_running
         st.rerun()
-    
-    cols = st.columns(2)
-    for idx, (name, url) in enumerate(CAMERAS.items()):
-        with cols[idx % 2]:
-            st.subheader(f"📷 {name}")
-            try:
-                webrtc_streamer(
-                    key=f"cam_{idx}",
-                    video_processor_factory=lambda: VideoTransformer(url),
-                    rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
-                    media_stream_constraints={"video": True, "audio": False},
-                )
-            except Exception as e:
-                st.error(f"❌ {e}")
+        
+    if st.session_state.cam_running:
+        # إنشاء مكان لعرض الفيديو
+        frame_placeholder = st.empty()
+        
+        # فتح الكاميرا
+        cap = cv2.VideoCapture(CAMERA_URL)
+        
+        if not cap.isOpened():
+            st.error("❌ لا يمكن الاتصال بالكاميرا. تأكد من الرابط أو من أن الكاميرا تعمل.")
+        else:
+            st.success("✅ تم الاتصال بالكاميرا بنجاح!")
+            # قراءة إطار واحد فقط (لتجنب إبطاء التطبيق)
+            ret, frame = cap.read()
+            if ret:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
+            else:
+                st.warning("⚠️ تم الاتصال ولكن لم يتم استلام صورة.")
+            
+            cap.release()
+            
+            # زر لتحديث الصورة يدوياً
+            if st.button("🔄 تحديث الصورة"):
+                st.rerun()
+    else:
+        st.info("اضغط على زر التشغيل لعرض البث.")
             
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
