@@ -450,7 +450,7 @@ with tab2:
         camera_found = False
         cap = None
         
-        for i in range(6):  # جرب المنافذ 0, 1, 2, 3, 4, 5
+        for i in range(10):  # جرب المنافذ 0, 1, 2, 3, 4, 5
             temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
             if temp_cap.isOpened():
                 ret, test_frame = temp_cap.read()
