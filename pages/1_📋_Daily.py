@@ -4,9 +4,8 @@
 import sys
 import os
 import glob
-import platform  # للتحقق من نظام التشغيل (سحابة أم محلي)
+import platform
 
-# ⚠️ يجب أن يكون هذا السطر في البداية وقبل أي استيراد آخر
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
@@ -19,12 +18,11 @@ import av
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import fitz  # PyMuPDF
+import fitz
+import requests  # <--- أضفنا هذا لقراءة الصورة من GitHub
 
-# الآن يمكنك استيراد الملف المشترك بأمان
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
-# إعداد الصفحة
 st.set_page_config(
     page_title="التقرير اليومي",
     page_icon="📋",
@@ -33,9 +31,6 @@ st.set_page_config(
 
 apply_common_css()
 
-# ═══════════════════════════════════════════════════════════
-# 🛑 إخفاء شريط الأدوات العلوي
-# ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     header[data-testid="stHeader"] { display: none !important; }
@@ -46,14 +41,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════
-# 🔍 التحقق من بيئة التشغيل (سحابة أم محلي)
-# ═══════════════════════════════════════════════════════════
 is_local_network = platform.system() == "Windows"
 
-# ═══════════════════════════════════════════════════════════
-# إعدادات المسارات (الشبكة الداخلية)
-# ═══════════════════════════════════════════════════════════
 NETWORK_PDF_PATH = r'\\CTRL-ROOM\ctsh\Daily_rep.pdf'
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
 MAINJOB_PATH = 'mainjob.xlsx'
@@ -130,11 +119,7 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     except Exception:
         pass
 
-# ═══════════════════════════════════════════════════════════
-# دوال تحويل الـ PDF إلى صورة
-# ═══════════════════════════════════════════════════════════
 def convert_pdf_to_image():
-    """يقرأ ملف الـ PDF من الشبكة ويحوله إلى صورة"""
     if not os.path.exists(NETWORK_PDF_PATH):
         return False, f"❌ لا يمكن الوصول لملف الـ PDF في المسار:\n`{NETWORK_PDF_PATH}`"
     
@@ -155,9 +140,6 @@ def convert_pdf_to_image():
     except Exception as e:
         return False, f"❌ خطأ أثناء التحويل: {e}"
 
-# ═══════════════════════════════════════════════════════════
-# 📊 دوال قراءات الخطوط
-# ═══════════════════════════════════════════════════════════
 DATE_COL = ' اليوم'
 
 VALUE_COLS = {
@@ -278,6 +260,7 @@ def render_tank_stats(df):
         last_val = series.iloc[-1]
         prev_val = series.iloc[-2] if len(series) > 1 else last_val
         delta = last_val - prev_val
+        total_sum = series.sum()
         
         if delta > 0: delta_color = '#AFFF00'; delta_icon = '▲'
         elif delta < 0: delta_color = '#FF6B6B'; delta_icon = '▼'
@@ -285,18 +268,35 @@ def render_tank_stats(df):
         
         with stat_cols[idx]:
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 100%); border-radius: 12px; padding: 20px 15px; border-right: 5px solid {meta['color']}; direction: rtl; text-align: center; min-height: 240px; box-shadow: 0 0 15px rgba(74, 144, 217, 0.2);">
-                <div style="color: {meta['color']}; font-size: 18px; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(74, 144, 217, 0.3);">🛢️ خط {meta['label']}</div>
-                <div style="color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 10px 0;">{last_val:,.2f}</div>
-                <div style="color: #AFFF00; font-size: 14px; margin-bottom: 8px;">⏱️ آخر قراءة</div>
-                <div style="color: {delta_color}; font-size: 16px; font-weight: bold; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 10px; display: inline-block;">{delta_icon} {abs(delta):,.2f} عن الأمس</div>
-                <div style="color: #E8F4FD; font-size: 16px; line-height: 2; text-align: right; padding: 0 10px;">📊 <b>المتوسط:</b> {series.mean():,.2f}<br>📈 <b>الأعلى:</b> {series.max():,.2f}<br>📉 <b>الأدنى:</b> {series.min():,.2f}</div>
-            </div>
+            <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 100%); border-radius: 12px; padding: 20px 15px; border-right: 5px solid {meta['color']}; direction: rtl; text-align: center; min-height: 280px; box-shadow: 0 0 15px rgba(74, 144, 217, 0.2);">
+                <div style="color: {meta['color']}; font-size: 18px; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #4A90D9;">
+                    🛢️ خط {meta['label']}
+                </div>
+                <div style="color: #FFFFFF; font-size: 28px; font-weight: bold; margin: 10px 0;">
+                    {last_val:,.2f}
+                </div>
+                <div style="color: #AFFF00; font-size: 14px; margin-bottom: 8px;">
+                    ⏱️ آخر قراءة
+                </div>
+                <div style="color: {delta_color}; font-size: 16px; font-weight: bold; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 10px; display: inline-block;">
+                    {delta_icon} {abs(delta):,.2f} عن الأمس
+                </div>
+                <div style="color: #E8F4FD; font-size: 16px; line-height: 2; text-align: right; padding: 0 10px;">
+                    📊 <b>المتوسط:</b> {series.mean():,.2f}<br>
+                    📈 <b>الأعلى:</b> {series.max():,.2f}<br>
+                    📉 <b>الأدنى:</b> {series.min():,.2f}
+                </div>
             """, unsafe_allow_html=True)
+            
+            if col != '(RES. LEVEL) AJD':
+                st.markdown(f"""
+                <div style="color: #FFFFFF; font-size: 20px; font-weight: bold; margin-top: 15px; background-color: #1E5A96; border-radius: 8px; padding: 8px;">
+                    الإجمالي: <span style="color: {meta['color']}; font-size: 22px;">{total_sum:,.2f}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════
-# 🏠 زر العودة للرئيسية
-# ═══════════════════════════════════════════════════════════
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
@@ -304,19 +304,12 @@ with col3:
 
 st.markdown("---")
 
-# ═══════════════════════════════════════════════════════════
-# التقرير اليومي
-# ═══════════════════════════════════════════════════════════
 st.title("📋 التقرير اليومي + 📹 المباشر")
 
 # ═══════════════════════════════════════════════════════════
-# 🌟 التبويبات الذكية (إخفاء الكاميرا على السحابة)
+# 🌟 التبويبات الذكية (إظهار الكاميرا في كلتا الحالتين)
 # ═══════════════════════════════════════════════════════════
-if is_local_network:
-    tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
-else:
-    tab1 = st.tabs(["📋 التقرير اليومي"])[0]
-    tab2 = None
+tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
 with tab1:
     st.markdown("""
@@ -348,9 +341,6 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    # ═══════════════════════════════════════════════════════════
-    # 🌟 التجديد التلقائي من الشبكة (PDF) 🌟
-    # ═══════════════════════════════════════════════════════════
     if os.path.exists(NETWORK_PDF_PATH):
         net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
         
@@ -412,16 +402,12 @@ with tab1:
             chart_type = chart_type_map[selected_label]
         
         with ctrl_col2:
-            # ═══════════════════════════════════════════════════════════
-            # 🌟 خوارزمية الفلتر الذكية (تتجاهل 2030 وتبدأ من آخر 30 يوم)
-            # ═══════════════════════════════════════════════════════════
             min_date = df_tank[DATE_COL].min().date()
             max_available_date = df_tank[DATE_COL].max().date()
             
             today = datetime.now().date()
-            max_date = min(today, max_available_date)  # الحد الأقصى هو اليوم
+            max_date = min(today, max_available_date)
             
-            # تحديد تاريخ البداية
             if today.day <= 7:
                 default_start = date(today.year, today.month, 1)
             else:
@@ -438,7 +424,7 @@ with tab1:
                 "📅 الفترة:",
                 value=(default_start, max_date),
                 min_value=min_date,
-                max_value=max_available_date, # نسمح باختيار أي تاريخ في الإكسيل يدوياً
+                max_value=max_available_date,
                 key="date_range_filter",
             )
         
@@ -471,10 +457,11 @@ with tab1:
                 render_tank_stats(df_filtered)
 
 # ═══════════════════════════════════════════════════════════
-# تبويب الكاميرا (يعمل فقط على الشبكة الداخلية)
+# تبويب الكاميرا (يعمل في السحابة والمحلي)
 # ═══════════════════════════════════════════════════════════
-if is_local_network and tab2 is not None:
-    with tab2:
+with tab2:
+    if is_local_network:
+        # ====== الوضع المحلي: بث مباشر من اللاقط ======
         st.markdown("### 📹 البث المباشر (لاقط الصور)")
         
         frame_placeholder = st.empty()
@@ -492,7 +479,6 @@ if is_local_network and tab2 is not None:
             camera_found = False
             cap = None
             
-            # 1. البحث عن اللاقط (من 0 إلى 5)
             for i in range(6):
                 temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
                 if temp_cap.isOpened():
@@ -509,7 +495,6 @@ if is_local_network and tab2 is not None:
             if not camera_found:
                 st.error("❌ لم يتم العثور على اللاقط. تأكد من توصيله أو من إغلاق أي برنامج آخر يستخدمه.")
             else:
-                # محاولة طلب دقة أعلى (مع الحماية من الانهيار)
                 try:
                     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
                     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -521,7 +506,6 @@ if is_local_network and tab2 is not None:
                 actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
                 st.info(f"📏 الدقة الفعلية للبث: {int(actual_width)} x {int(actual_height)}")
 
-                # 2. عرض الفيديو في حلقة مستمرة
                 while True:
                     ret, frame = cap.read()
                     if not ret:
@@ -536,6 +520,25 @@ if is_local_network and tab2 is not None:
                 cap.release()
         else:
             st.info("اضغط على زر التشغيل لعرض البث.")
+
+    else:
+        # ====== وضع السحابة: عرض الصورة المرفوعة من GitHub ======
+        st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
+        
+        from io import BytesIO
+        
+        GITHUB_RAW_URL = "https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/live_camera.jpg"
+        
+        try:
+            response = requests.get(GITHUB_RAW_URL)
+            if response.status_code == 200:
+                img = Image.open(BytesIO(response.content))
+                st.image(img, use_container_width=True)
+                st.info("⏱️ يتم تحديث هذه الصورة كل 30 ثانية من الكاميرا المحلية.")
+            else:
+                st.warning("⏳ الصورة غير متوفرة حالياً. قد يكون سكربت الالتقاط متوقفاً.")
+        except Exception as e:
+            st.error(f"خطأ في جلب الصورة: {e}")
 
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
