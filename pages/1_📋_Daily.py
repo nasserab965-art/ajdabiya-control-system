@@ -5,6 +5,7 @@ import sys
 import os
 import platform
 import time
+import base64
 from datetime import datetime, date
 from io import BytesIO
 
@@ -508,34 +509,36 @@ with tab2:
             st.info("اضغط على زر التشغيل لعرض البث.")
 
     else:
-        # ====== وضع السحابة: عرض الصورة باستخدام GitHub API والتوكن ======
+        # ====== وضع السحابة: عرض الصورة باستخدام GitHub API (Base64) ======
         st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
         
-        # جلب التوكن من إعدادات Streamlit Cloud
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-        
         GITHUB_API_URL = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
         
         image_placeholder = st.empty()
         
         if not GITHUB_TOKEN:
-            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud. يرجى إضافته في قسم Secrets.")
+            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
         else:
             try:
                 headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-                
-                # استخدام الرابط المباشر مع إضافة الوقت لكسر الكاش
-                raw_url = f"https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/live_camera.jpg?t={time.time()}"
-                
-                response = requests.get(raw_url, headers=headers, timeout=10)
+                response = requests.get(GITHUB_API_URL, headers=headers, timeout=10)
                 
                 if response.status_code == 200:
-                    img = Image.open(BytesIO(response.content))
-                    image_placeholder.image(img, use_container_width=True)
-                    st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
+                    file_data = response.json()
+                    content_b64 = file_data.get("content")
+                    
+                    if content_b64:
+                        # فك تشفير الصورة مباشرة من النص
+                        img_bytes = base64.b64decode(content_b64)
+                        img = Image.open(BytesIO(img_bytes))
+                        
+                        image_placeholder.image(img, use_container_width=True)
+                        st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
+                    else:
+                        st.warning("⚠️ الصورة موجودة لكن لا تحتوي على بيانات.")
                 else:
-                    st.warning(f"⚠️ فشل تحميل الصورة. كود الخطأ: {response.status_code}")
-                    st.write("تأكد من أن الصورة موجودة في المستودع.")
+                    st.warning(f"⚠️ فشل جلب الصورة. كود الخطأ: {response.status_code}")
                     
             except Exception as e:
                 st.error(f"❌ حدث خطأ: {e}")
