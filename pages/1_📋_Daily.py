@@ -495,50 +495,6 @@ with tab2:
             st.error(f"❌ حدث خطأ: {e}")
     else:
         st.info("اضغط على زر التشغيل لعرض البث.")
-        # ═══════════════════════════════════════════════════════════
-        # 🌟 محاولة فتح الكاميرا من المنافذ 0 إلى 10 تلقائياً
-        # ═══════════════════════════════════════════════════════════
-        camera_found = False
-        cap = None
-        
-        for i in range(10):
-            # المحاولة الأولى: باستخدام DSHOW (للويندوز)
-            temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
-            
-            # إذا لم يفتح، جرب الطريقة الافتراضية
-            if not temp_cap.isOpened():
-                temp_cap.release()
-                temp_cap = cv2.VideoCapture(i)
-            
-            if temp_cap.isOpened():
-                ret, test_frame = temp_cap.read()
-                if ret and test_frame is not None:
-                    cap = temp_cap
-                    camera_found = True
-                    st.success(f"✅ تم العثور على اللاقط على المنفذ: {i}")
-                    break
-                else:
-                    temp_cap.release()
-        
-        if not camera_found:
-            st.error("❌ لم يتم العثور على اللاقط. تأكد من إغلاق أي برنامج آخر يستخدمه، أو جرب توصيله بمنفذ USB آخر.")
-        else:
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-            
-            ret, frame = cap.read()
-            if ret:
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-                
-                if st.button("🔄 تحديث الصورة"):
-                    st.rerun()
-            else:
-                st.warning("⚠️ تم فتح اللاقط لكن لم يتم استلام صورة. تأكد من توصيل مصدر الفيديو.")
-            
-            cap.release()
-    else:
-        st.info("اضغط على زر التشغيل لعرض البث.")
             
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
