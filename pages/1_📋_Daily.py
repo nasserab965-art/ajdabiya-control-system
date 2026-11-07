@@ -3,23 +3,21 @@
 """
 import sys
 import os
-import glob
 import platform
+import time
+from datetime import datetime, date
+from io import BytesIO
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
-import io
-import shutil
-from datetime import datetime, date
-from PIL import Image, ImageDraw, ImageFont
-import cv2
-import av
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import fitz
-import requests  # <--- أضفنا هذا لقراءة الصورة من GitHub
+import requests
+import cv2
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
@@ -58,9 +56,6 @@ MAINJOB_SHEETS = [
 
 MIN_DATE = '2025-01-01'
 
-# ═══════════════════════════════════════════════════════════
-# دوال معالجة الصور
-# ═══════════════════════════════════════════════════════════
 def optimize_image(image_path, max_width=2500):
     try:
         img = Image.open(image_path)
@@ -306,9 +301,6 @@ st.markdown("---")
 
 st.title("📋 التقرير اليومي + 📹 المباشر")
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 التبويبات الذكية (إظهار الكاميرا في كلتا الحالتين)
-# ═══════════════════════════════════════════════════════════
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
 with tab1:
@@ -456,12 +448,8 @@ with tab1:
                 st.markdown("### 📈 إحصائيات سريعة لكل خط")
                 render_tank_stats(df_filtered)
 
-# ═══════════════════════════════════════════════════════════
-# تبويب الكاميرا (يعمل في السحابة والمحلي)
-# ═══════════════════════════════════════════════════════════
 with tab2:
     if is_local_network:
-        # ====== الوضع المحلي: بث مباشر من اللاقط ======
         st.markdown("### 📹 البث المباشر (لاقط الصور)")
         
         frame_placeholder = st.empty()
@@ -474,8 +462,6 @@ with tab2:
             st.rerun()
 
         if st.session_state.streaming:
-            import time
-            
             camera_found = False
             cap = None
             
@@ -521,22 +507,14 @@ with tab2:
         else:
             st.info("اضغط على زر التشغيل لعرض البث.")
 
-       else:
-        # ====== وضع السحابة: عرض الصورة المرفوعة من GitHub ======
+    else:
         st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
         
-        from io import BytesIO
-        import time
-        
-        # رابط الصورة من GitHub
         GITHUB_RAW_URL = "https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/live_camera.jpg"
         
-        # حاوية لعرض الصورة
         image_placeholder = st.empty()
         
-        # عرض الصورة
         try:
-            # نضيف معامل عشوائي لكسر الكاش (Cache Busting)
             response = requests.get(GITHUB_RAW_URL + "?t=" + str(time.time()), timeout=10)
             if response.status_code == 200:
                 img = Image.open(BytesIO(response.content))
@@ -547,15 +525,9 @@ with tab2:
         except Exception as e:
             st.error(f"خطأ في جلب الصورة: {e}")
             
-        # ═══════════════════════════════════════════════════════════
-        # 🌟 حيلة التحديث التلقائي كل 30 ثانية (بدون تدخل المستخدم)
-        # ═══════════════════════════════════════════════════════════
         time.sleep(30)
         st.rerun()
 
-# ═══════════════════════════════════════════════════════════
-# 🏠 زر العودة للرئيسية (أسفل الصفحة)
-# ═══════════════════════════════════════════════════════════
 st.markdown("---")
 st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
 col1, col2, col3 = st.columns([1, 2, 1])
