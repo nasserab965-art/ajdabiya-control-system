@@ -19,7 +19,7 @@ import requests
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from streamlit_autorefresh import st_autorefresh # <-- أضفنا هذه المكتبة
+from streamlit_autorefresh import st_autorefresh
 
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
@@ -294,14 +294,19 @@ def render_tank_stats(df):
             
             st.markdown("</div>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([1, 2, 1])
-with col3:
+# ═══════════════════════════════════════════════════════════
+# 🌟 العنوان وزر العودة في نفس المستوى
+# ═══════════════════════════════════════════════════════════
+col_title, col_btn = st.columns([3, 1])
+with col_title:
+    st.title("📋 التقرير اليومي + 📹 المباشر")
+with col_btn:
+    st.write("") # مسافة بسيطة لضبط المحاذاة
+    st.write("")
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
         st.switch_page("app_main.py")
 
 st.markdown("---")
-
-st.title("📋 التقرير اليومي + 📹 المباشر")
 
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 
@@ -513,7 +518,6 @@ with tab2:
         # ====== وضع السحابة: عرض الصورة باستخدام GitHub API (Base64) ======
         st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
         
-        # 🌟 تحديث الصفحة في الخلفية كل 30 ثانية دون إعادة تحميلها
         st_autorefresh(interval=30000, key="camera_refresh")
         
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
