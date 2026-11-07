@@ -19,6 +19,7 @@ import requests
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from streamlit_autorefresh import st_autorefresh # <-- أضفنا هذه المكتبة
 
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
@@ -512,6 +513,9 @@ with tab2:
         # ====== وضع السحابة: عرض الصورة باستخدام GitHub API (Base64) ======
         st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
         
+        # 🌟 تحديث الصفحة في الخلفية كل 30 ثانية دون إعادة تحميلها
+        st_autorefresh(interval=30000, key="camera_refresh")
+        
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
         GITHUB_API_URL = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
         
@@ -529,7 +533,6 @@ with tab2:
                     content_b64 = file_data.get("content")
                     
                     if content_b64:
-                        # فك تشفير الصورة مباشرة من النص
                         img_bytes = base64.b64decode(content_b64)
                         img = Image.open(BytesIO(img_bytes))
                         
@@ -542,10 +545,6 @@ with tab2:
                     
             except Exception as e:
                 st.error(f"❌ حدث خطأ: {e}")
-                
-        # إعادة تشغيل الصفحة كل 30 ثانية
-        time.sleep(30)
-        st.rerun()
 
 st.markdown("---")
 st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
