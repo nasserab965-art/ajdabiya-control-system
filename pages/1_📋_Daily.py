@@ -508,34 +508,39 @@ with tab2:
             st.info("اضغط على زر التشغيل لعرض البث.")
 
     else:
-        # ====== وضع السحابة: عرض الصورة باستخدام GitHub API ======
+        # ====== وضع السحابة: عرض الصورة باستخدام GitHub API والتوكن ======
         st.markdown("### 📹 البث المباشر (لقطة كل 30 ثانية)")
+        
+        # جلب التوكن من إعدادات Streamlit Cloud
+        GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
         
         GITHUB_API_URL = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
         
         image_placeholder = st.empty()
         
-        try:
-            response = requests.get(GITHUB_API_URL, timeout=10)
-            if response.status_code == 200:
-                file_data = response.json()
-                unique_url = file_data.get("download_url")
+        if not GITHUB_TOKEN:
+            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud. يرجى إضافته في قسم Secrets.")
+        else:
+            try:
+                headers = {"Authorization": f"token {GITHUB_TOKEN}"}
                 
-                if unique_url:
-                    img_response = requests.get(unique_url + "?token=" + str(time.time()), timeout=10)
-                    if img_response.status_code == 200:
-                        img = Image.open(BytesIO(img_response.content))
-                        image_placeholder.image(img, use_container_width=True)
-                        st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
-                    else:
-                        st.warning("⚠️ فشل تحميل الصورة من الرابط.")
+                # استخدام الرابط المباشر مع إضافة الوقت لكسر الكاش
+                raw_url = f"https://raw.githubusercontent.com/nasserab965-art/ajdabiya-control-system/main/live_camera.jpg?t={time.time()}"
+                
+                response = requests.get(raw_url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    img = Image.open(BytesIO(response.content))
+                    image_placeholder.image(img, use_container_width=True)
+                    st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
                 else:
-                    st.warning("⏳ لم يتم العثور على رابط الصورة.")
-            else:
-                st.warning("⏳ الصورة غير متوفرة حالياً. قد يكون سكربت الالتقاط متوقفاً.")
-        except Exception as e:
-            st.error(f"خطأ في جلب الصورة: {e}")
-            
+                    st.warning(f"⚠️ فشل تحميل الصورة. كود الخطأ: {response.status_code}")
+                    st.write("تأكد من أن الصورة موجودة في المستودع.")
+                    
+            except Exception as e:
+                st.error(f"❌ حدث خطأ: {e}")
+                
+        # إعادة تشغيل الصفحة كل 30 ثانية
         time.sleep(30)
         st.rerun()
 
