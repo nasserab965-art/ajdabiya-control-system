@@ -444,6 +444,57 @@ with tab2:
         st.rerun()
 
     if st.session_state.streaming:
+        try:
+            from pygrabber.dshow_graph import FilterGraph
+            import numpy as np
+            
+            graph = FilterGraph()
+            devices = graph.get_input_devices()
+            
+            if not devices:
+                st.error("❌ لم يتم العثور على أي جهاز فيديو متصل. تأكد من توصيل اللاقط.")
+            else:
+                st.info(f"📹 الأجهزة المكتشفة: {devices}")
+                
+                # نبحث عن اللاقط الخاص بك (USB Video) في قائمة الأجهزة
+                target_device = None
+                for dev in devices:
+                    if "USB Video" in dev or "Capture" in dev:
+                        target_device = dev
+                        break
+                
+                # إذا لم نجده بالاسم، نأخذ الجهاز الأول
+                if target_device is None:
+                    target_device = devices[0]
+                
+                st.success(f"✅ جاري محاولة الاتصال بـ: {target_device}")
+                
+                # فتح اللاقط باستخدام OpenCV
+                cap = cv2.VideoCapture(target_device, cv2.CAP_DSHOW)
+                
+                if not cap.isOpened():
+                    st.error(f"❌ فشل الاتصال بـ {target_device}. قد يكون مشغولاً ببرنامج آخر.")
+                else:
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+                    
+                    ret, frame = cap.read()
+                    if ret:
+                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
+                        
+                        if st.button("🔄 تحديث الصورة"):
+                            st.rerun()
+                    else:
+                        st.warning("⚠️ تم فتح اللاقط لكن لم يتم استلام صورة. تأكد من توصيل مصدر الفيديو (HDMI).")
+                    
+                    cap.release()
+        except ImportError:
+            st.error("❌ مكتبة pygrabber غير مثبتة. الرجاء تشغيل الأمر: pip install pygrabber")
+        except Exception as e:
+            st.error(f"❌ حدث خطأ: {e}")
+    else:
+        st.info("اضغط على زر التشغيل لعرض البث.")
         # ═══════════════════════════════════════════════════════════
         # 🌟 محاولة فتح الكاميرا من المنافذ 0 إلى 10 تلقائياً
         # ═══════════════════════════════════════════════════════════
