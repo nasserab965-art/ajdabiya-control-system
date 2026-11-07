@@ -31,6 +31,9 @@ st.set_page_config(
 
 apply_common_css()
 
+# ═══════════════════════════════════════════════════════════
+# 🛑 إخفاء الشريط وتقليل المسافات العلوية
+# ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
     header[data-testid="stHeader"] { display: none !important; }
@@ -39,8 +42,16 @@ st.markdown("""
     #MainMenu { visibility: hidden !important; }
     footer { visibility: hidden !important; }
     
-    /* تقليل المسافات العلوية */
-    .block-container { padding-top: 2rem !important; }
+    /* تقليل المسافات العلوية بشكل كبير */
+    .block-container { 
+        padding-top: 1rem !important; 
+        padding-bottom: 0rem !important;
+    }
+    
+    /* تقليل المسافة تحت التبويبات */
+    div[data-testid="stTabs"] {
+        margin-top: -10px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -298,22 +309,22 @@ def render_tank_stats(df):
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 🌟 العنوان وزر العودة (في نفس السطر)
+# 🌟 العنوان وزر العودة (تم تصغير العنوان هنا)
 # ═══════════════════════════════════════════════════════════
 col_title, col_btn = st.columns([3, 1])
 with col_title:
+    # تم تصغير حجم الخط إلى 24px بدلاً من h2 الافتراضي
     st.markdown("""
-    <h2 style='margin: 0; padding-bottom: 10px; font-family: Arial;'>
-        <span style='color: #1A5276;'>📋 التقرير اليومي + 📹 المباشر</span>
+    <h2 style='margin: 0; padding-bottom: 5px; font-family: Arial; font-size: 24px; color: #1A5276;'>
+        📋 التقرير اليومي + 📹 المباشر
     </h2>
     """, unsafe_allow_html=True)
 with col_btn:
-    st.write("")
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
         st.switch_page("app_main.py")
 
 # ═══════════════════════════════════════════════════════════
-# 🌟 التبويبات (تم دمج عنوان البث المباشر فيها)
+# 🌟 التبويبات
 # ═══════════════════════════════════════════════════════════
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر | لقطة كل 30 ثانية"])
 
