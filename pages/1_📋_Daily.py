@@ -49,7 +49,6 @@ st.markdown("""
 # ═══════════════════════════════════════════════════════════
 # 🔍 التحقق من بيئة التشغيل (سحابة أم محلي)
 # ═══════════════════════════════════════════════════════════
-# السحابة تعمل على Linux، بينما جهازك يعمل على Windows
 is_local_network = platform.system() == "Windows"
 
 # ═══════════════════════════════════════════════════════════
@@ -314,10 +313,8 @@ st.title("📋 التقرير اليومي + 📹 المباشر")
 # 🌟 التبويبات الذكية (إخفاء الكاميرا على السحابة)
 # ═══════════════════════════════════════════════════════════
 if is_local_network:
-    # على الشبكة الداخلية: نعرض التبويبين
     tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر"])
 else:
-    # على السحابة: نعرض التبويب الأول فقط (بدون كاميرا)
     tab1 = st.tabs(["📋 التقرير اليومي"])[0]
     tab2 = None
 
@@ -415,11 +412,35 @@ with tab1:
             chart_type = chart_type_map[selected_label]
         
         with ctrl_col2:
+            # ═══════════════════════════════════════════════════════════
+            # 🌟 خوارزمية الفلتر الذكية (تتجاهل 2030 وتبدأ من آخر 30 يوم)
+            # ═══════════════════════════════════════════════════════════
             min_date = df_tank[DATE_COL].min().date()
-            max_date = df_tank[DATE_COL].max().date()
-            default_start = max(min_date, (max_date - pd.Timedelta(days=30)))
-            if isinstance(default_start, pd.Timestamp): default_start = default_start.date()
-            date_range = st.date_input("📅 الفترة:", value=(default_start, max_date), min_value=min_date, max_value=max_date, key="date_range_filter")
+            max_available_date = df_tank[DATE_COL].max().date()
+            
+            today = datetime.now().date()
+            max_date = min(today, max_available_date)  # الحد الأقصى هو اليوم
+            
+            # تحديد تاريخ البداية
+            if today.day <= 7:
+                default_start = date(today.year, today.month, 1)
+            else:
+                default_start = max_date - pd.Timedelta(days=30)
+                if isinstance(default_start, pd.Timestamp):
+                    default_start = default_start.date()
+            
+            default_start = max(min_date, default_start)
+            
+            if default_start > max_date:
+                default_start = min_date
+
+            date_range = st.date_input(
+                "📅 الفترة:",
+                value=(default_start, max_date),
+                min_value=min_date,
+                max_value=max_available_date, # نسمح باختيار أي تاريخ في الإكسيل يدوياً
+                key="date_range_filter",
+            )
         
         with ctrl_col3:
             st.write("")
