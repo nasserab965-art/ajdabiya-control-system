@@ -489,6 +489,8 @@ with tab2:
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
 st.markdown("---")
+st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
+col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
         st.switch_page("app_main.py")
