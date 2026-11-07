@@ -450,7 +450,7 @@ with tab2:
         st.rerun()
 
     if st.session_state.streaming:
-        cap = cv2.VideoCapture(CAPTURE_INDEX, cv2.CAP_DSHOW)
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # جرب 0، 1، 2
         
         if not cap.isOpened():
             st.error(f"❌ لا يمكن فتح لاقط الصور على المنفذ {CAPTURE_INDEX}. جرب تغيير الرقم في الكود.")
