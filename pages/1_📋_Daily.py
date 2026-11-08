@@ -130,26 +130,69 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     except Exception:
         pass
 
+# ═══════════════════════════════════════════════════════════
+# 🌟 دالة التحويل الذكية (تقرأ من الشبكة أو GitHub)
+# ═══════════════════════════════════════════════════════════
 def convert_pdf_to_image():
-    if not os.path.exists(NETWORK_PDF_PATH):
-        return False, f"❌ لا يمكن الوصول لملف الـ PDF في المسار:\n`{NETWORK_PDF_PATH}`"
+    if not is_local_network:
+        # === وضع السحابة: جلب الـ PDF من GitHub ===
+        GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+        if not GITHUB_TOKEN:
+            return False, "❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud."
+            
+        try:
+            headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+            url = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/Daily_rep.pdf"
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                file_data = response.json()
+                content_b64 = file_data.get("content")
+                
+                if content_b64:
+                    pdf_bytes = base64.b64decode(content_b64)
+                    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+                    page = doc[0]
+                    mat = fitz.Matrix(3, 3) 
+                    pix = page.get_pixmap(matrix=mat, alpha=False)
+                    
+                    pix.save(LOCAL_IMAGE_PATH)
+                    doc.close()
+                    
+                    optimize_image(LOCAL_IMAGE_PATH, max_width=2500)
+                    add_timestamp_to_image(LOCAL_IMAGE_PATH)
+                    add_watermark_to_image(LOCAL_IMAGE_PATH, text="غرفة تحكم اجدابيا")
+                    
+                    return True, "✅ تم تحديث التقرير من GitHub بنجاح!"
+                else:
+                    return False, "⚠️ ملف الـ PDF موجود في GitHub لكنه فارغ."
+            else:
+                return False, f"⚠️ فشل جلب الـ PDF من GitHub. كود الخطأ: {response.status_code}"
+                
+        except Exception as e:
+            return False, f"❌ حدث خطأ أثناء جلب الـ PDF: {e}"
     
-    try:
-        doc = fitz.open(NETWORK_PDF_PATH)
-        page = doc[0]
-        mat = fitz.Matrix(3, 3) 
-        pix = page.get_pixmap(matrix=mat, alpha=False)
+    else:
+        # === وضع الشبكة الداخلية: القراءة من الشبكة ===
+        if not os.path.exists(NETWORK_PDF_PATH):
+            return False, f"❌ لا يمكن الوصول لملف الـ PDF في المسار:\n`{NETWORK_PDF_PATH}`"
         
-        pix.save(LOCAL_IMAGE_PATH)
-        doc.close()
-        
-        optimize_image(LOCAL_IMAGE_PATH, max_width=2500)
-        add_timestamp_to_image(LOCAL_IMAGE_PATH)
-        add_watermark_to_image(LOCAL_IMAGE_PATH, text="غرفة تحكم اجدابيا")
-        
-        return True, "✅ تم تحديث صورة التقرير من الشبكة بنجاح!"
-    except Exception as e:
-        return False, f"❌ خطأ أثناء التحويل: {e}"
+        try:
+            doc = fitz.open(NETWORK_PDF_PATH)
+            page = doc[0]
+            mat = fitz.Matrix(3, 3) 
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            
+            pix.save(LOCAL_IMAGE_PATH)
+            doc.close()
+            
+            optimize_image(LOCAL_IMAGE_PATH, max_width=2500)
+            add_timestamp_to_image(LOCAL_IMAGE_PATH)
+            add_watermark_to_image(LOCAL_IMAGE_PATH, text="غرفة تحكم اجدابيا")
+            
+            return True, "✅ تم تحديث صورة التقرير من الشبكة بنجاح!"
+        except Exception as e:
+            return False, f"❌ خطأ أثناء التحويل: {e}"
 
 DATE_COL = ' اليوم'
 
@@ -309,11 +352,10 @@ def render_tank_stats(df):
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 🌟 العنوان وزر العودة (تم تصغير العنوان هنا)
+# 🌟 العنوان وزر العودة
 # ═══════════════════════════════════════════════════════════
 col_title, col_btn = st.columns([3, 1])
 with col_title:
-    # تم تصغير حجم الخط إلى 24px بدلاً من h2 الافتراضي
     st.markdown("""
     <h2 style='margin: 0; padding-bottom: 5px; font-family: Arial; font-size: 24px; color: #1A5276;'>
         📋 التقرير اليومي + 📹 المباشر
@@ -329,6 +371,7 @@ with col_btn:
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر | لقطة كل 30 ثانية"])
 
 with tab1:
+    # ... (نفس كود التقرير اليومي) ...
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%); border-radius: 22px; padding: 45px 50px; margin: 20px 0 30px 0; border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08); direction: rtl; text-align: center;">
         <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
@@ -358,17 +401,18 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
     
-    if os.path.exists(NETWORK_PDF_PATH):
-        net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
-        
-        if not os.path.exists(LOCAL_IMAGE_PATH):
-            with st.spinner('🔄 جاري تجهيز التقرير...'):
-                convert_pdf_to_image()
-        else:
+    # منطق التجديد التلقائي
+    if os.path.exists(LOCAL_IMAGE_PATH) and is_local_network:
+        if os.path.exists(NETWORK_PDF_PATH):
+            net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
             img_mtime = os.path.getmtime(LOCAL_IMAGE_PATH)
             if net_mtime > img_mtime:
                 with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري التحديث...'):
                     convert_pdf_to_image()
+    elif not is_local_network and not os.path.exists(LOCAL_IMAGE_PATH):
+        # على السحابة، نقوم بإنشاء الصورة أول مرة
+        with st.spinner('🔄 جاري تجهيز التقرير...'):
+            convert_pdf_to_image()
     
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -475,6 +519,7 @@ with tab1:
 
 with tab2:
     if is_local_network:
+        # ... (كود البث المباشر المحلي) ...
         frame_placeholder = st.empty()
         
         if 'streaming' not in st.session_state:
@@ -531,6 +576,7 @@ with tab2:
             st.info("اضغط على زر التشغيل لعرض البث.")
 
     else:
+        # ... (كود البث السحابي) ...
         st_autorefresh(interval=30000, key="camera_refresh")
         
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
