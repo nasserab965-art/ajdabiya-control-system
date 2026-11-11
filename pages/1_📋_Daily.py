@@ -1,12 +1,14 @@
 """
 الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة ذكية)
+- السيناريو C: بث حي في Streamlit + خطة بديلة تلقائية
+- إصلاح: إزالة معامل key من st.image
 """
 import sys
 import os
 import platform
 import time
 import base64
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from io import BytesIO
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,7 +18,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import fitz
 import requests
-import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from streamlit_autorefresh import st_autorefresh
@@ -41,14 +42,12 @@ st.markdown("""
     [data-testid="stDecoration"] { display: none !important; }
     #MainMenu { visibility: hidden !important; }
     footer { visibility: hidden !important; }
-    
-    /* تقليل المسافات العلوية بشكل كبير */
-    .block-container { 
-        padding-top: 1rem !important; 
+
+    .block-container {
+        padding-top: 1rem !important;
         padding-bottom: 0rem !important;
     }
-    
-    /* تقليل المسافة تحت التبويبات */
+
     div[data-testid="stTabs"] {
         margin-top: -10px !important;
     }
@@ -59,6 +58,7 @@ is_local_network = platform.system() == "Windows"
 
 NETWORK_PDF_PATH = r'\\CTRL-ROOM\ctsh\Daily_rep.pdf'
 LOCAL_IMAGE_PATH = 'Daily_rep.png'
+LOCAL_CAMERA_PATH = 'live_camera.jpg'
 MAINJOB_PATH = 'mainjob.xlsx'
 
 MAINJOB_SHEETS = [
@@ -72,6 +72,9 @@ MAINJOB_SHEETS = [
 
 MIN_DATE = '2025-01-01'
 
+# ═══════════════════════════════════════════════════════════
+# 🖼️ دوال معالجة الصور
+# ═══════════════════════════════════════════════════════════
 def optimize_image(image_path, max_width=2500):
     try:
         img = Image.open(image_path)
@@ -131,65 +134,49 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
         pass
 
 # ═══════════════════════════════════════════════════════════
-# 🌟 دالة التحويل الذكية (تقرأ من الشبكة أو GitHub)
+# 🌟 دالة التحويل الذكية
 # ═══════════════════════════════════════════════════════════
 def convert_pdf_to_image():
     if not is_local_network:
-        # === وضع السحابة: جلب الـ PDF من GitHub ===
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
         if not GITHUB_TOKEN:
             return False, "❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud."
-            
         try:
             headers = {"Authorization": f"token {GITHUB_TOKEN}"}
             url = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/Daily_rep.pdf"
-            
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code == 200:
                 file_data = response.json()
                 content_b64 = file_data.get("content")
-                
                 if content_b64:
                     pdf_bytes = base64.b64decode(content_b64)
                     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
                     page = doc[0]
-                    mat = fitz.Matrix(3, 3) 
+                    mat = fitz.Matrix(3, 3)
                     pix = page.get_pixmap(matrix=mat, alpha=False)
-                    
                     pix.save(LOCAL_IMAGE_PATH)
                     doc.close()
-                    
                     optimize_image(LOCAL_IMAGE_PATH, max_width=2500)
                     add_timestamp_to_image(LOCAL_IMAGE_PATH)
                     add_watermark_to_image(LOCAL_IMAGE_PATH, text="غرفة تحكم اجدابيا")
-                    
                     return True, "✅ تم تحديث التقرير من GitHub بنجاح!"
-                else:
-                    return False, "⚠️ ملف الـ PDF موجود في GitHub لكنه فارغ."
-            else:
-                return False, f"⚠️ فشل جلب الـ PDF من GitHub. كود الخطأ: {response.status_code}"
-                
+                return False, "⚠️ ملف الـ PDF موجود في GitHub لكنه فارغ."
+            return False, f"⚠️ فشل جلب الـ PDF من GitHub. كود الخطأ: {response.status_code}"
         except Exception as e:
             return False, f"❌ حدث خطأ أثناء جلب الـ PDF: {e}"
-    
     else:
-        # === وضع الشبكة الداخلية: القراءة من الشبكة ===
         if not os.path.exists(NETWORK_PDF_PATH):
             return False, f"❌ لا يمكن الوصول لملف الـ PDF في المسار:\n`{NETWORK_PDF_PATH}`"
-        
         try:
             doc = fitz.open(NETWORK_PDF_PATH)
             page = doc[0]
-            mat = fitz.Matrix(3, 3) 
+            mat = fitz.Matrix(3, 3)
             pix = page.get_pixmap(matrix=mat, alpha=False)
-            
             pix.save(LOCAL_IMAGE_PATH)
             doc.close()
-            
             optimize_image(LOCAL_IMAGE_PATH, max_width=2500)
             add_timestamp_to_image(LOCAL_IMAGE_PATH)
             add_watermark_to_image(LOCAL_IMAGE_PATH, text="غرفة تحكم اجدابيا")
-            
             return True, "✅ تم تحديث صورة التقرير من الشبكة بنجاح!"
         except Exception as e:
             return False, f"❌ خطأ أثناء التحويل: {e}"
@@ -205,7 +192,7 @@ VALUE_COLS = {
     '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'},
 }
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def load_tank_data(path, sheet_names):
     if isinstance(sheet_names, str):
         sheet_names = [sheet_names]
@@ -281,10 +268,10 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
                     marker=dict(size=6, color=meta['color']),
                     hovertemplate=f"<b>{meta['label']}</b><br>التاريخ: %{{x|%Y-%m-%d}}<br>القيمة: %{{y:,.2f}}<extra></extra>",
                 ))
-    
+
     barmode = 'group' if chart_type == 'bar' else None
     title_text = f'📊 قراءات الخطوط - {year_label}' if year_label else '📊 قراءات الخطوط'
-    
+
     fig.update_layout(
         title=dict(text=title_text, font=dict(size=24, color='#F9CA24', family='Arial'), x=0.5, xanchor='center'),
         paper_bgcolor='#0B1E3F', plot_bgcolor='#163A6B',
@@ -315,11 +302,11 @@ def render_tank_stats(df):
         prev_val = series.iloc[-2] if len(series) > 1 else last_val
         delta = last_val - prev_val
         total_sum = series.sum()
-        
+
         if delta > 0: delta_color = '#AFFF00'; delta_icon = '▲'
         elif delta < 0: delta_color = '#FF6B6B'; delta_icon = '▼'
         else: delta_color = '#E8F4FD'; delta_icon = '●'
-        
+
         with stat_cols[idx]:
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 100%); border-radius: 12px; padding: 20px 15px; border-right: 5px solid {meta['color']}; direction: rtl; text-align: center; min-height: 280px; box-shadow: 0 0 15px rgba(74, 144, 217, 0.2);">
@@ -341,14 +328,14 @@ def render_tank_stats(df):
                     📉 <b>الأدنى:</b> {series.min():,.2f}
                 </div>
             """, unsafe_allow_html=True)
-            
+
             if col != '(RES. LEVEL) AJD':
                 st.markdown(f"""
                 <div style="color: #FFFFFF; font-size: 20px; font-weight: bold; margin-top: 15px; background-color: #1E5A96; border-radius: 8px; padding: 8px;">
                     الإجمالي: <span style="color: {meta['color']}; font-size: 22px;">{total_sum:,.2f}</span>
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
@@ -371,7 +358,6 @@ with col_btn:
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر | لقطة كل 30 ثانية"])
 
 with tab1:
-    # ... (نفس كود التقرير اليومي) ...
     st.markdown("""
     <div style="background: linear-gradient(135deg, #0B1E3F 0%, #163A6B 50%, #1E5A96 100%); border-radius: 22px; padding: 45px 50px; margin: 20px 0 30px 0; border: 2px solid #4A90D9; box-shadow: 0 0 25px rgba(74, 144, 217, 0.35), 0 0 70px rgba(74, 144, 217, 0.15), inset 0 0 50px rgba(74, 144, 217, 0.08); direction: rtl; text-align: center;">
         <h1 style="color: #F9CA24; font-size: 48px; margin: 0 0 25px 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); font-weight: bold; font-family: Arial, sans-serif;">🌟 مشروع النهر الصناعى - المرحلة الأولى 🌟</h1>
@@ -400,8 +386,7 @@ with tab1:
     """, unsafe_allow_html=True)
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
-    
-    # منطق التجديد التلقائي
+
     if os.path.exists(LOCAL_IMAGE_PATH) and is_local_network:
         if os.path.exists(NETWORK_PDF_PATH):
             net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
@@ -410,10 +395,9 @@ with tab1:
                 with st.spinner('🔄 تم اكتشاف تحديث جديد، جاري التحديث...'):
                     convert_pdf_to_image()
     elif not is_local_network and not os.path.exists(LOCAL_IMAGE_PATH):
-        # على السحابة، نقوم بإنشاء الصورة أول مرة
         with st.spinner('🔄 جاري تجهيز التقرير...'):
             convert_pdf_to_image()
-    
+
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("🔄 إعادة توليد التقرير", width="stretch", type="primary"):
@@ -424,18 +408,18 @@ with tab1:
                     st.rerun()
                 else:
                     st.error(msg)
-    
+
     with col2:
         if os.path.exists(LOCAL_IMAGE_PATH):
             mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_IMAGE_PATH))
             st.info(f"📅 آخر تحديث للصورة: {mtime.strftime('%Y-%m-%d %H:%M')}")
-    
+
     st.markdown("---")
-    
+
     if os.path.exists(LOCAL_IMAGE_PATH):
         img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2200, 100, key="img_w")
         st.image(LOCAL_IMAGE_PATH, width=img_width)
-        
+
         with open(LOCAL_IMAGE_PATH, "rb") as f:
             st.download_button(
                 "🖼️ تحميل الصورة PNG", data=f.read(),
@@ -456,28 +440,28 @@ with tab1:
         st.caption(load_info)
 
         ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 2, 1])
-        
+
         with ctrl_col1:
             chart_type_map = {'📈 خطي + نقاط': 'lines+markers', '📉 خط فقط': 'lines', '📊 أعمدة': 'bar'}
             selected_label = st.radio("🎨 نوع الرسم:", options=list(chart_type_map.keys()), index=0, horizontal=True, key="chart_type_selector")
             chart_type = chart_type_map[selected_label]
-        
+
         with ctrl_col2:
             min_date = df_tank[DATE_COL].min().date()
             max_available_date = df_tank[DATE_COL].max().date()
-            
+
             today = datetime.now().date()
             max_date = min(today, max_available_date)
-            
+
             if today.day <= 7:
                 default_start = date(today.year, today.month, 1)
             else:
                 default_start = max_date - pd.Timedelta(days=30)
                 if isinstance(default_start, pd.Timestamp):
                     default_start = default_start.date()
-            
+
             default_start = max(min_date, default_start)
-            
+
             if default_start > max_date:
                 default_start = min_date
 
@@ -488,19 +472,19 @@ with tab1:
                 max_value=max_available_date,
                 key="date_range_filter",
             )
-        
+
         with ctrl_col3:
             st.write("")
             st.write("")
             show_stats = st.checkbox("📊 إحصائيات", value=True, key="show_stats_cb")
-        
+
         if isinstance(date_range, tuple) and len(date_range) == 2:
             start_date, end_date = date_range
             mask = (df_tank[DATE_COL].dt.date >= start_date) & (df_tank[DATE_COL].dt.date <= end_date)
             df_filtered = df_tank[mask].copy()
         else:
             df_filtered = df_tank.copy()
-        
+
         if df_filtered.empty:
             st.warning("⚠️ لا توجد بيانات في الفترة المحددة")
         else:
@@ -512,77 +496,131 @@ with tab1:
                 width='stretch',
                 config={'displayModeBar': True, 'scrollZoom': True, 'toImageButtonOptions': {'format': 'png', 'filename': f'tank_readings_{year_label.replace(" / ", "_")}_{datetime.now().strftime("%Y%m%d")}', 'height': 800, 'width': 1600, 'scale': 2}}
             )
-            
+
             if show_stats:
                 st.markdown("### 📈 إحصائيات سريعة لكل خط")
                 render_tank_stats(df_filtered)
 
+# ═══════════════════════════════════════════════════════════
+# 📹 تبويب المباشر — السيناريو C
+# ═══════════════════════════════════════════════════════════
 with tab2:
     if is_local_network:
-        # ... (كود البث المباشر المحلي) ...
-        frame_placeholder = st.empty()
-        
-        if 'streaming' not in st.session_state:
-            st.session_state.streaming = True
-            
-        if st.button("🛑 إيقاف / تشغيل البث"):
-            st.session_state.streaming = not st.session_state.streaming
-            st.rerun()
+        import cv2
 
-        if st.session_state.streaming:
-            camera_found = False
-            cap = None
-            
-            for i in range(6):
-                temp_cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
-                if temp_cap.isOpened():
-                    time.sleep(1)
-                    ret, test_frame = temp_cap.read()
-                    if ret and test_frame is not None:
-                        cap = temp_cap
-                        camera_found = True
-                        st.success(f"✅ تم الاتصال باللاقط على المنفذ: {i}")
-                        break
-                    else:
-                        temp_cap.release()
-            
-            if not camera_found:
-                st.error("❌ لم يتم العثور على اللاقط. تأكد من توصيله أو من إغلاق أي برنامج آخر يستخدمه.")
+        def _open_streamlit_camera():
+            for backend, name in [
+                (cv2.CAP_DSHOW, "DSHOW"),
+                (cv2.CAP_MSMF,  "MSMF"),
+                (cv2.CAP_ANY,   "ANY"),
+            ]:
+                for idx in range(4):
+                    try:
+                        cap = cv2.VideoCapture(idx, backend)
+                        if not cap.isOpened():
+                            cap.release()
+                            continue
+                        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+                        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+                        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                        time.sleep(0.2)
+                        ok = False
+                        for _ in range(3):
+                            ret, f = cap.read()
+                            if ret and f is not None and f.size > 0:
+                                ok = True
+                                break
+                            time.sleep(0.1)
+                        if ok:
+                            return cap, f"{name} (index={idx})"
+                        cap.release()
+                    except Exception:
+                        pass
+            return None, None
+
+        c1, c2, c3 = st.columns([3, 1, 1])
+        with c1:
+            st.markdown("<div style='color:#4A90D9;font-weight:bold;padding-top:8px;'>📺 وضع المزج الذكي: بث حي + خطة بديلة تلقائية</div>", unsafe_allow_html=True)
+        with c2:
+            if st.button("🔄 إعادة محاولة", width="stretch", key="retry_cam"):
+                st.rerun()
+        with c3:
+            show_fallback_only = st.checkbox("📸 صورة فقط", value=False, key="fallback_only")
+
+        st.markdown("---")
+
+        if not show_fallback_only:
+            cap, info = _open_streamlit_camera()
+
+            if cap is not None and cap.isOpened():
+                st.success(f"🟢 بث حي — {info}")
+                frame_ph = st.empty()
+                stop_ph = st.empty()
+                stop_clicked = stop_ph.button("⏹️ إيقاف البث", key="stop_stream_btn")
+
+                if not stop_clicked:
+                    fail_count = 0
+                    try:
+                        while fail_count < 30:
+                            ret, frame = cap.read()
+                            if not ret or frame is None:
+                                fail_count += 1
+                                time.sleep(0.1)
+                                continue
+                            fail_count = 0
+                            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            frame_ph.image(frame_rgb, channels="RGB", use_container_width=True)
+                            time.sleep(0.03)
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            cap.release()
+                        except Exception:
+                            pass
+                else:
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+                    st.rerun()
             else:
-                try:
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-                    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-                except Exception:
-                    pass
-                
-                actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                st.info(f"📏 الدقة الفعلية للبث: {int(actual_width)} x {int(actual_height)}")
-
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        st.warning("⚠️ انقطع البث.")
-                        break
-                        
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-                    
-                    time.sleep(0.05) 
-                    
-                cap.release()
+                st.warning("🟡 الكاميرا مشغولة الآن (ربما يلتقط السكربت الخارجي صورة). سيعرض آخر صورة محفوظة — أعد المحاولة بعد ثانية.")
+                if os.path.exists(LOCAL_CAMERA_PATH):
+                    mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
+                    age = (datetime.now() - mtime).total_seconds()
+                    st.caption(f"📸 آخر لقطة: {mtime.strftime('%H:%M:%S')} (قبل {int(age)}ث)")
+                    with open(LOCAL_CAMERA_PATH, "rb") as f:
+                        st.image(f.read(), use_container_width=True)
+                else:
+                    st.info("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
+                st_autorefresh(interval=2000, key="auto_retry_cam")
         else:
-            st.info("اضغط على زر التشغيل لعرض البث.")
+            st_autorefresh(interval=30000, key="local_camera_refresh")
+            if os.path.exists(LOCAL_CAMERA_PATH):
+                mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
+                age = (datetime.now() - mtime).total_seconds()
+                if age <= 90:
+                    st.success(f"🟢 آخر لقطة قبل {int(age)} ثانية ({mtime.strftime('%H:%M:%S')})")
+                elif age <= 300:
+                    st.warning(f"🟡 آخر لقطة قبل {int(age//60)} دقيقة")
+                else:
+                    st.error(f"🔴 آخر لقطة قبل {int(age//60)} دقيقة — تأكد من تشغيل `camera_capture.py`")
 
+                with open(LOCAL_CAMERA_PATH, "rb") as f:
+                    img_bytes = f.read()
+                
+                st.image(img_bytes, use_container_width=True)
+                
+                st.caption(f"🕐 {mtime.strftime('%Y-%m-%d %H:%M:%S')} — {len(img_bytes)//1024} KB")
+            else:
+                st.warning("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
     else:
-        # ... (كود البث السحابي) ...
+        # ☁️ السحابة
         st_autorefresh(interval=30000, key="camera_refresh")
-        
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
         GITHUB_API_URL = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
-        
-        image_placeholder = st.empty()
         
         if not GITHUB_TOKEN:
             st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
@@ -594,18 +632,15 @@ with tab2:
                 if response.status_code == 200:
                     file_data = response.json()
                     content_b64 = file_data.get("content")
-                    
                     if content_b64:
                         img_bytes = base64.b64decode(content_b64)
                         img = Image.open(BytesIO(img_bytes))
-                        
-                        image_placeholder.image(img, use_container_width=True)
+                        st.image(img, use_container_width=True)
                         st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
                     else:
                         st.warning("⚠️ الصورة موجودة لكن لا تحتوي على بيانات.")
                 else:
                     st.warning(f"⚠️ فشل جلب الصورة. كود الخطأ: {response.status_code}")
-                    
             except Exception as e:
                 st.error(f"❌ حدث خطأ: {e}")
 
