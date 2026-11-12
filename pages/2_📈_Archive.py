@@ -3,26 +3,62 @@
 """
 import sys
 import os
-from datetime import datetime
 
-# ⚠️ يجب أن يكون هذا السطر في البداية وقبل أي استيراد آخر
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
 import pandas as pd
+import sqlite3
 import plotly.graph_objects as go
-
-# الآن يمكنك استيراد الملف المشترك بأمان
+import time
+from datetime import datetime
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
 st.set_page_config(page_title="أرشيف القراءات", page_icon="📈", layout="wide")
+
+apply_common_css()
+
+# ═══════════════════════════════════════════════════════════
+# 🛑 إخفاء الشريط الجانبي نهائياً (احترازياً)
+# ═══════════════════════════════════════════════════════════
+st.markdown("""
+<style>
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="collapsedControl"] { display: none !important; }
+    
+    /* تكبير خط العناوين الفرعية (مثل أسماء السنوات) */
+    h3 {
+        font-size: 1.6rem !important;
+        font-weight: bold !important;
+    }
+    /* تكبير نصوص القوائم المنسدلة (Selectbox) */
+    div[data-baseweb="select"] > div {
+        font-size: 18px !important;
+    }
+    /* تكبير نصوص خانات الاختيار (Checkboxes) */
+    .stCheckbox label span {
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    /* تكبير نصوص الأزرار */
+    button p {
+        font-size: 16px !important;
+    }
+    /* تقليل الفراغات الجانبية لتوسيع الصفحة */
+    .block-container {
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        max-width: 95% !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أعلى الصفحة)
 # ═══════════════════════════════════════════════════════════
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
+    if st.button("🏠 العودة للرئيسية", use_container_width=True, type="primary", key="back_top"):
         st.switch_page("app_main.py")
 
 st.markdown("---")
@@ -33,50 +69,106 @@ if not st.session_state.get('logged_in', False):
         st.switch_page("app_main.py")
     st.stop()
 
-apply_common_css()
-st.markdown("""
-<style>
-    /* تكبير أرقام المحاور (X و Y) */
-    .js-plotly-plot .plotly .xtick text,
-    .js-plotly-plot .plotly .ytick text {
-        font-size: 18px !important;
-        font-weight: bold !important;
-    }
-    
-    /* تكبير عناوين المحاور */
-    .js-plotly-plot .plotly .xaxis-title text,
-    .js-plotly-plot .plotly .yaxis-title text {
-        font-size: 20px !important;
-        font-weight: bold !important;
-    }
-    
-    /* تكبير نصوص مفاتيح الرسم (Legend) */
-    .js-plotly-plot .plotly .legendtext {
-        font-size: 18px !important;
-        font-weight: bold !important;
-    }
-    
-    /* تكبير شريط الأدوات العلوي (الزوم والتكبير والتحميل) */
-    .js-plotly-plot .plotly .modebar-btn {
-        transform: scale(1.5) !important;
-        margin: 5px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
 st.title("📈 أرشيف القراءات 2030 → 2025 م")
 
-st.markdown("""
-<style>
-    h3 { font-size: 1.6rem !important; font-weight: bold !important; }
-    div[data-baseweb="select"] > div { font-size: 18px !important; }
-    .stCheckbox label span { font-size: 18px !important; font-weight: bold !important; }
-    button p { font-size: 16px !important; }
-    .block-container { padding-left: 2rem !important; padding-right: 2rem !important; max-width: 95% !important; }
-</style>
-""", unsafe_allow_html=True)
+# ─────────────────────────────────────────────────────────────
+# دوال المزامنة والفحص
+# ─────────────────────────────────────────────────────────────
+def sync_all_excel_to_db():
+    excel_path = 'mainjob.xlsx'
+    db_path = 'app_data.db'
+    if not os.path.exists(excel_path):
+        return False, f"❌ الملف غير موجود في المسار: {os.path.abspath(excel_path)}"
+    
+    try:
+        all_sheets = pd.read_excel(excel_path, sheet_name=None)
+    except Exception as e:
+        return False, f"❌ خطأ في قراءة ملف الإكسل: {e}"
+
+    conn = sqlite3.connect(db_path)
+    updated = []
+
+    for sheet_name, df in all_sheets.items():
+        if df.empty or df.dropna(how='all').empty:
+            continue
+        
+        # تنظيف أسماء الأعمدة من المسافات
+        df.columns = [str(c).strip() for c in df.columns]
+        df = df.dropna(how='all').reset_index(drop=True)
+
+        # البحث عن عمود التاريخ
+        date_col = None
+        for col in df.columns:
+            if 'اليوم' in col or 'date' in col.lower() or 'تاريخ' in col:
+                date_col = col
+                break
+        
+        if not date_col:
+            continue
+
+        try:
+            dates = pd.to_datetime(df[date_col], errors='coerce')
+            valid_mask = dates.notna()
+            if not valid_mask.any():
+                continue
+                
+            df = df[valid_mask].copy()
+            year = dates[valid_mask].dt.year.mode()[0]
+            table_name = f"main_job_{year}" if year != 2025 else "main_job"
+            
+            df.to_sql(table_name, conn, if_exists='replace', index=False)
+            updated.append(f"سنة {year} (جدول: {table_name} | {len(df)} صف)")
+        except Exception as e:
+            pass
+
+    conn.close()
+    if not updated:
+        return False, "⚠️ لم يتم العثور على بيانات صالحة (تأكد من وجود عمود 'اليوم' وتواريخ صحيحة)."
+    return True, "✅ تم التحديث:\n" + "\n".join(updated)
 
 # ─────────────────────────────────────────────────────────────
-# 1. تحميل البيانات (مباشرة من الإكسيل)
+# ⚙️ إدارة البيانات (أزرار أعلى الصفحة بدلاً من الشريط الجانبي)
+# ─────────────────────────────────────────────────────────────
+st.markdown("### ⚙️ إدارة البيانات")
+col_sync, col_check, _ = st.columns([1.5, 1.5, 2])
+
+with col_sync:
+    # زر المزامنة
+    if st.button("🔄 تحديث البيانات من الإكسل", use_container_width=True, type="primary"):
+        with st.spinner("جاري المزامنة..."):
+            success, msg = sync_all_excel_to_db()
+            if success:
+                st.success(msg)
+                st.cache_data.clear()
+                time.sleep(1.5)
+                st.rerun()
+            else:
+                st.error(msg)
+                
+with col_check:
+    # زر الفحص
+    if st.button("🔍 فحص قاعدة البيانات (2027)", use_container_width=True):
+        try:
+            conn = sqlite3.connect('app_data.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = [row[0] for row in cursor.fetchall()]
+            
+            if 'main_job_2027' in tables:
+                df_check = pd.read_sql("SELECT * FROM main_job_2027", conn)
+                st.success(f"✅ جدول 2027 موجود ويحتوي على {len(df_check)} صف.")
+                st.write("**أول 5 أعمدة:**", df_check.columns.tolist()[:5])
+            else:
+                st.error("❌ جدول 2027 غير موجود بعد! اضغط على زر التحديث أولاً.")
+                st.write("الجداول الموجودة:", tables)
+            conn.close()
+        except Exception as e:
+            st.error(f"خطأ: {e}")
+
+st.markdown("---")
+
+# ─────────────────────────────────────────────────────────────
+# 1. تحميل البيانات
 # ─────────────────────────────────────────────────────────────
 YEAR_TABLES = {2025: "main_job", 2026: "main_job_2026", 2027: "main_job_2027", 2028: "main_job_2028", 2029: "main_job_2029", 2030: "main_job_2030"}
 YEARS_DESC = sorted(YEAR_TABLES.keys(), reverse=True)
@@ -91,36 +183,41 @@ for year, table_name in YEAR_TABLES.items():
         pass
 
 if not years_data:
-    st.error("❌ لا توجد بيانات في أي عام! تأكد من وجود ملف mainjob.xlsx")
+    st.error("❌ لا توجد بيانات في أي عام! يرجى استخدام زر التحديث.")
     back_to_home_button()
     st.stop()
 
 available_years = [y for y in YEARS_DESC if y in years_data]
 
 # ─────────────────────────────────────────────────────────────
-# 2. التحكم بالأعمدة
+# 2. التحكم بالأعمدة (مرن - يجمع الأعمدة من كل السنوات)
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
 col1, col2 = st.columns([1, 3])
 
-reference_year = available_years[0]
+# جلب الأعمدة من أحدث سنة متاحة للحفاظ على الترتيب الأصلي للإكسل
+reference_year = available_years[0] # 2026 أو 2025
 ref_df = years_data[reference_year]
 
+# 1. ترتيب أعمدة المحور X (حسب ترتيب السنة المرجعية ثم أي إضافات)
 common_all = [str(c) for c in ref_df.columns]
 for y in available_years:
     for c in years_data[y].columns:
         if str(c) not in common_all:
             common_all.append(str(c))
 
+# 2. ترتيب أعمدة المحور Y (الرقمية) حسب ترتيب السنة المرجعية
 ref_numeric = [str(c) for c in ref_df.select_dtypes(include=['number']).columns]
-common_numeric = list(ref_numeric)
+common_numeric = list(ref_numeric) # نبدأ بأعمدة السنة المرجعية بالترتيب
 
+# نضيف أي أعمدة رقمية جديدة موجودة في سنوات أخرى ولم تكن في السنة المرجعية
 for y in available_years:
     for c in years_data[y].select_dtypes(include=['number']).columns:
         if str(c) not in common_numeric:
             common_numeric.append(str(c))
 
 with col1:
+    # محاولة العثور على عمود التاريخ لجعله الاختيار الافتراضي
     default_x_index = 0
     for i, col in enumerate(common_all):
         if 'اليوم' in col or 'تاريخ' in col or 'date' in col.lower():
@@ -138,18 +235,22 @@ with col2:
     )
 
 # ─────────────────────────────────────────────────────────────
-# 3. اختيار الأعوام
+# 3. اختيار الأعوام (السنة الحالية محددة افتراضياً)
 # ─────────────────────────────────────────────────────────────
 st.markdown("**👁️ اختر الأعوام لعرضها:**")
 year_cols = st.columns(len(available_years))
 visible_years = []
 
+# تحديد السنة الحالية
 current_year = datetime.now().year
 
 for i, y in enumerate(available_years):
     with year_cols[i]:
         valid_rows = len(years_data[y].dropna(how='all')) 
         has_data = valid_rows > 0
+        
+        # إذا كانت السنة هي السنة الحالية، نضع علامة صح افتراضياً
+        # أما باقي السنوات، نضعها فارغة لكي لا يتم رسمها إلا إذا اختارها المستخدم
         is_checked_by_default = (y == current_year)
         
         if st.checkbox(f"{y} ({valid_rows} صف)", value=is_checked_by_default, key=f"show_year_{y}"):
@@ -190,14 +291,8 @@ y_min_global, y_max_global = float('inf'), float('-inf')
 for y in visible_years:
     for col in y_cols:
         if col in years_data[y].columns and not years_data[y][col].dropna().empty:
-            series = years_data[y][col].dropna()
-            valid_series = series[(series > -10000) & (series < 10000)]
-            if not valid_series.empty:
-                y_min_global = min(y_min_global, valid_series.min())
-                y_max_global = max(y_max_global, valid_series.max())
-
-if y_min_global == float('inf') or y_max_global == float('-inf'):
-    y_min_global, y_max_global = None, None
+            y_min_global = min(y_min_global, years_data[y][col].min())
+            y_max_global = max(y_max_global, years_data[y][col].max())
 
 final_x_title = custom_x_title if custom_x_title.strip() else x_axis
 final_y_title = custom_y_title if custom_y_title.strip() else "القيمة"
@@ -230,7 +325,7 @@ for y in visible_years:
         yaxis_title=dict(text=final_y_title, font=dict(size=title_font)),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=10, r=10, t=30, b=10),
-        yaxis=dict(range=[y_min_global, y_max_global] if y_min_global is not None else None, showgrid=show_grid, gridcolor='lightgray', zeroline=False, tickfont=dict(size=tick_font)),
+        yaxis=dict(range=[y_min_global, y_max_global], showgrid=show_grid, gridcolor='lightgray', zeroline=False, tickfont=dict(size=tick_font)),
         xaxis=dict(showgrid=show_grid, gridcolor='lightgray', tickfont=dict(size=tick_font), showspikes=True, spikemode="across", spikesnap="cursor", spikedash="dot", spikecolor="gray", spikethickness=1)
     )
     try: fig.update_xaxes(type='date')
@@ -243,5 +338,5 @@ for y in visible_years:
 st.markdown("---")
 col1, col2, col3 = st.columns([1, 2, 1])
 with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
+    if st.button("🏠 العودة للرئيسية", use_container_width=True, type="primary", key="back_bottom"):
         st.switch_page("app_main.py")
