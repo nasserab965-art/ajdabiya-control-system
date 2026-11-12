@@ -502,7 +502,7 @@ with tab1:
                 render_tank_stats(df_filtered)
 
 # ═══════════════════════════════════════════════════════════
-# 📹 تبويب المباشر — السيناريو C
+# 📹 تبويب المباشر
 # ═══════════════════════════════════════════════════════════
 with tab2:
     if is_local_network:
@@ -619,34 +619,7 @@ with tab2:
     else:
         # ☁️ السحابة
         st_autorefresh(interval=30000, key="camera_refresh")
-        GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-        GITHUB_API_URL = "https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
         
-        if not GITHUB_TOKEN:
-            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
-        else:
-            try:
-                headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-                response = requests.get(GITHUB_API_URL, headers=headers, timeout=10)
-                
-                if response.status_code == 200:
-                    file_data = response.json()
-                    content_b64 = file_data.get("content")
-                    if content_b64:
-                        img_bytes = base64.b64decode(content_b64)
-                        img = Image.open(BytesIO(img_bytes))
-                        st.image(img, use_container_width=True)
-                        st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 30 ثانية.")
-                    else:
-                        st.warning("⚠️ الصورة موجودة لكن لا تحتوي على بيانات.")
-                else:
-                    st.warning(f"⚠️ فشل جلب الصورة. كود الخطأ: {response.status_code}")
-            except Exception as e:
-                st.error(f"❌ حدث خطأ: {e}")
-
-st.markdown("---")
-st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
-col1, col2, col3 = st.columns([1, 2, 1])
-with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
-        st.switch_page("app_main.py")
+        GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+        # 🌟 إضافة الوقت لكسر الكاش (Cache Buster)
+        GITHUB_API_URL = f"https://api.github.com/repos/nasser
