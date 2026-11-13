@@ -595,7 +595,7 @@ with tab2:
                     st.info("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
                 st_autorefresh(interval=2000, key="auto_retry_cam")
         else:
-            st_autorefresh(interval=30000, key="local_camera_refresh")
+            st_autorefresh(interval=20000, key="local_camera_refresh")
             if os.path.exists(LOCAL_CAMERA_PATH):
                 mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
                 age = (datetime.now() - mtime).total_seconds()
@@ -619,12 +619,17 @@ with tab2:
         st_autorefresh(interval=20000, key="camera_refresh")
         
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-        # إضافة الوقت لكسر الكاش
         GITHUB_API_URL = f"https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
         
         if not GITHUB_TOKEN:
             st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
         else:
             try:
-                headers = {"Authorization": f"token {GITHUB_TOKEN}", "Cache-Control": "no-cache"}
-                response = requests.get(GITHUB_API_URL, headers=headers, timeout
+                headers = {
+                    "Authorization": f"token {GITHUB_TOKEN}", 
+                    "Cache-Control": "no-cache"
+                }
+                response = requests.get(GITHUB_API_URL, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    file_data = response.json()
