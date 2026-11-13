@@ -1,7 +1,5 @@
 """
 الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة ذكية)
-- السيناريو C: بث حي في Streamlit + خطة بديلة تلقائية
-- إصلاح: إزالة معامل key من st.image
 """
 import sys
 import os
@@ -618,8 +616,15 @@ with tab2:
                 st.warning("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
     else:
         # ☁️ السحابة
-        st_autorefresh(interval=30000, key="camera_refresh")
+        st_autorefresh(interval=20000, key="camera_refresh")
         
         GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-        # 🌟 إضافة الوقت لكسر الكاش (Cache Buster)
-        GITHUB_API_URL = f"https://api.github.com/repos/nasser
+        # إضافة الوقت لكسر الكاش
+        GITHUB_API_URL = f"https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
+        
+        if not GITHUB_TOKEN:
+            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
+        else:
+            try:
+                headers = {"Authorization": f"token {GITHUB_TOKEN}", "Cache-Control": "no-cache"}
+                response = requests.get(GITHUB_API_URL, headers=headers, timeout
