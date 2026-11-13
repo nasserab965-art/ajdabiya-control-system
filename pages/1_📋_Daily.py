@@ -633,3 +633,22 @@ with tab2:
                 
                 if response.status_code == 200:
                     file_data = response.json()
+                    content_b64 = file_data.get("content")
+                    if content_b64:
+                        img_bytes = base64.b64decode(content_b64)
+                        img = Image.open(BytesIO(img_bytes))
+                        st.image(img, use_container_width=True)
+                        st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 20 ثانية.")
+                    else:
+                        st.warning("⚠️ الصورة موجودة لكن لا تحتوي على بيانات.")
+                else:
+                    st.warning(f"⚠️ فشل جلب الصورة. كود الخطأ: {response.status_code}")
+            except Exception as e:
+                st.error(f"❌ حدث خطأ: {e}")
+
+st.markdown("---")
+st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col3:
+    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
+        st.switch_page("app_main.py")
