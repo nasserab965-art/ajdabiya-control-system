@@ -179,17 +179,27 @@ def convert_pdf_to_image():
         except Exception as e:
             return False, f"❌ خطأ أثناء التحويل: {e}"
 
-DATE_COL = ' اليوم'
+# ═══════════════════════════════════════════════════════════
+# 🌟 تعريف الأعمدة بالاعتماد على الترتيب (index) وليس الاسم
+# ═══════════════════════════════════════════════════════════
+# ⚠️ عدّل الأرقام لو ترتيب أعمدة شيتك مختلف:
+#   0 = التاريخ | 1 = S/S | 2 = T/B | 3 = A/B | 4 = A/S | 5 = الفاقد | 6 = RES. LEVEL
+DATE_COL_INDEX = 0
+DATE_COL = 'DATE_INTERNAL'   # اسم داخلي موحّد لعمود التاريخ بعد المعالجة
 
+# مفاتيح داخلية ثابتة (لا تعتمد على نص رأس العمود في الإكسل)
 VALUE_COLS = {
-    '(S/S) AJD': {'label': 'S/S TOT AJD', 'color': '#F9CA24'},
-    '(T/B) AJD': {'label': 'T/B TOT AJD', 'color': '#AFFF00'},
-    '(A/B) AJD': {'label': 'A/B TOT AJD', 'color': '#4A90D9'},
-    '(A/S) AJD': {'label': 'A/S TOT AJD', 'color': '#FF6B6B'},
-    'AJD_LOSES': {'label': 'الفاقد', 'color': '#FFFB6B'},
-    '(RES. LEVEL) AJD': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF'},
+    'COL_SS':  {'label': 'S/S TOT AJD',    'color': '#F9CA24', 'index': 1},
+    'COL_TB':  {'label': 'T/B TOT AJD',    'color': '#AFFF00', 'index': 2},
+    'COL_AB':  {'label': 'A/B TOT AJD',    'color': '#4A90D9', 'index': 3},
+    'COL_AS':  {'label': 'A/S TOT AJD',    'color': '#FF6B6B', 'index': 4},
+    'COL_LOS': {'label': 'الفاقد',          'color': '#FFFB6B', 'index': 5},
+    'COL_RES': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF', 'index': 6},
 }
 
+# ═══════════════════════════════════════════════════════════
+# 🌟 تحميل البيانات بالاعتماد على ترتيب الأعمدة
+# ═══════════════════════════════════════════════════════════
 @st.cache_data(ttl=10, show_spinner=False)
 def load_tank_data(path, sheet_names):
     if isinstance(sheet_names, str):
@@ -199,29 +209,39 @@ def load_tank_data(path, sheet_names):
     info_lines = []
     loaded_sheets = []
 
+    needed_indices = [DATE_COL_INDEX] + [m['index'] for m in VALUE_COLS.values()]
+    max_needed = max(needed_indices)
+
     for sheet in sheet_names:
         try:
-            df = pd.read_excel(path, sheet_name=sheet)
-            missing = [c for c in [DATE_COL] + list(VALUE_COLS.keys()) if c not in df.columns]
-            if missing:
-                info_lines.append(f"⚠️ شيت '{sheet}': أعمدة مفقودة → تم التخطي")
+            # header=None لقراءة الأعمدة بالترتيب وليس بالاسم
+            raw = pd.read_excel(path, sheet_name=sheet, header=None)
+
+            if raw.empty or raw.shape[1] <= max_needed:
+                info_lines.append(
+                    f"⚠️ شيت '{sheet}': عدد الأعمدة غير كافٍ "
+                    f"({raw.shape[1]} < {max_needed + 1}) → تم التخطي"
+                )
                 continue
 
-            df[DATE_COL] = pd.to_datetime(df[DATE_COL], errors='coerce')
-            df = df.dropna(subset=[DATE_COL])
+            data = pd.DataFrame()
+            data[DATE_COL] = pd.to_datetime(raw.iloc[:, DATE_COL_INDEX], errors='coerce')
 
-            for col in VALUE_COLS.keys():
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+            for key, meta in VALUE_COLS.items():
+                data[key] = pd.to_numeric(raw.iloc[:, meta['index']], errors='coerce')
 
-            df = df.dropna(how='all', subset=list(VALUE_COLS.keys()))
+            # حذف الصفوف بدون تاريخ
+            data = data.dropna(subset=[DATE_COL])
+            # حذف الصفوف التي كل قيمها NaN
+            data = data.dropna(how='all', subset=list(VALUE_COLS.keys()))
 
-            if df.empty:
+            if data.empty:
                 info_lines.append(f"ℹ️ شيت '{sheet}': فارغ → تم التخطي")
                 continue
 
-            df['_sheet'] = sheet
-            frames.append(df)
-            loaded_sheets.append(f"{sheet} ({len(df)})")
+            data['_sheet'] = sheet
+            frames.append(data)
+            loaded_sheets.append(f"{sheet} ({len(data)})")
 
         except ValueError:
             info_lines.append(f"⚠️ شيت '{sheet}': غير موجود في الملف")
@@ -249,6 +269,9 @@ def load_tank_data(path, sheet_names):
 
     return combined, msg
 
+# ═══════════════════════════════════════════════════════════
+# 🌟 رسم البيانات
+# ═══════════════════════════════════════════════════════════
 def plot_tank_data(df, chart_type='lines+markers', year_label=''):
     fig = go.Figure()
     for col, meta in VALUE_COLS.items():
@@ -282,6 +305,9 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
     )
     return fig
 
+# ═══════════════════════════════════════════════════════════
+# 🌟 إحصائيات كل خط
+# ═══════════════════════════════════════════════════════════
 def render_tank_stats(df):
     valid_items = []
     for col, meta in VALUE_COLS.items():
@@ -327,7 +353,7 @@ def render_tank_stats(df):
                 </div>
             """, unsafe_allow_html=True)
 
-            if col != '(RES. LEVEL) AJD':
+            if col != 'COL_RES':
                 st.markdown(f"""
                 <div style="color: #FFFFFF; font-size: 20px; font-weight: bold; margin-top: 15px; background-color: #1E5A96; border-radius: 8px; padding: 8px;">
                     الإجمالي: <span style="color: {meta['color']}; font-size: 22px;">{total_sum:,.2f}</span>
@@ -436,6 +462,16 @@ with tab1:
         st.warning(load_info)
     else:
         st.caption(load_info)
+
+        # 🔍 أداة فحص اختيارية للتأكد من ترتيب الأعمدة
+        with st.expander("🔍 فحص أعمدة الإكسل (للمراجعة فقط)"):
+            try:
+                _raw = pd.read_excel(MAINJOB_PATH, sheet_name=MAINJOB_SHEETS[0], header=None, nrows=8)
+                st.write(f"**عدد الأعمدة:** {_raw.shape[1]}")
+                st.dataframe(_raw, use_container_width=True)
+                st.caption("تأكد أن العمود رقم 5 (0-based) هو 'الفاقد'، وإلا عدّل `index` في `VALUE_COLS`.")
+            except Exception as _e:
+                st.info(f"تعذر قراءة الشيت للمراجعة: {_e}")
 
         ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 2, 1])
 
