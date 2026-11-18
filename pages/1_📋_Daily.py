@@ -193,7 +193,7 @@ VALUE_COLS = {
     'COL_TB':  {'label': 'T/B TOT AJD',    'color': '#AFFF00', 'index': 16},
     'COL_AB':  {'label': 'A/B TOT AJD',    'color': '#4A90D9', 'index': 20},
     'COL_AS':  {'label': 'A/S TOT AJD',    'color': '#FF6B6B', 'index': 21},
-    'COL_LOS': {'label': 'الفاقد',          'color': '#FFFB6B', 'index': 28},
+    'COL_LOS': {'label': 'الفاقد',          'color': '#FFFB6B', 'index': 29},
     'COL_RES': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF', 'index': 24},
 }
 
