@@ -31,7 +31,7 @@ st.set_page_config(
 apply_common_css()
 
 # ═══════════════════════════════════════════════════════════
-# 🛑 إخفاء الشريط وتقليل المسافات العلوية
+# 🛑 إخفاء الشريط وتقليل المسافات العلوية + تكبير أيقونات الرسم
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -51,15 +51,14 @@ st.markdown("""
     }
 
     /* ⬇️ تكبير أيقونات شريط أدوات Plotly (Modebar) ⬇️ */
-    .modebar-container .modebar-btn svg {
-        width: 26px !important;
-        height: 26px !important;
+    .modebar-btn svg {
+        width: 24px !important;
+        height: 24px !important;
+        transform: scale(1.5) !important;
     }
-    .modebar-container .modebar-btn {
-        padding: 6px !important;
-    }
-    .modebar-group {
-        padding: 4px !important;
+    .modebar-btn {
+        padding: 8px !important;
+        margin: 2px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -314,6 +313,14 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
         hovermode='x unified', barmode=barmode,
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5, bgcolor='rgba(11, 30, 63, 0.9)', bordercolor='#4A90D9', borderwidth=2, font=dict(size=14, color='#FFFFFF')),
         margin=dict(l=70, r=30, t=100, b=70), height=550, dragmode='pan',
+        
+        # ⬇️ إعدادات شريط الأدوات المدمجة ⬇️
+        modebar=dict(
+            orientation='v',
+            bgcolor='rgba(11, 30, 63, 0.7)',
+            color='#FFFFFF',
+            activecolor='#F9CA24'
+        )
     )
     return fig
 
@@ -539,9 +546,11 @@ with tab1:
             years = sorted(df_filtered[DATE_COL].dt.year.unique())
             year_label = " / ".join(str(y) for y in years)
 
+            # ⬇️ إضافة theme=None لإجبار Streamlit على تطبيق التنسيقات ⬇️
             st.plotly_chart(
                 plot_tank_data(df_filtered, chart_type, year_label),
-                width='stretch',
+                use_container_width=True,
+                theme=None, 
                 config={'displayModeBar': True, 'scrollZoom': True, 'toImageButtonOptions': {'format': 'png', 'filename': f'tank_readings_{year_label.replace(" / ", "_")}_{datetime.now().strftime("%Y%m%d")}', 'height': 800, 'width': 1600, 'scale': 2}}
             )
 
@@ -564,7 +573,6 @@ with tab1:
                 ordered_cols = ['اليوم'] + [m['label'] for m in VALUE_COLS.values() if m['label'] in table_df.columns]
                 table_df = table_df[ordered_cols]
 
-                # عرض الجدول مع توسيط القيم والعناوين
                 st.dataframe(
                     table_df.style
                     .format({col: '{:,.2f}' for col in ordered_cols if col != 'اليوم'})
