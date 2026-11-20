@@ -131,6 +131,22 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
     except Exception:
         pass
 
+def is_valid_image(image_path):
+    """التحقق من أن الملف صورة سليمة وغير تالفة قبل عرضها"""
+    try:
+        if not os.path.exists(image_path) or os.path.getsize(image_path) == 0:
+            return False
+        with Image.open(image_path) as img:
+            img.verify()  # يتحقق من سلامة البيانات
+        return True
+    except Exception:
+        # إذا كانت تالفة، نقوم بحذفها ليقوم النظام بإنشائها من جديد
+        try:
+            os.remove(image_path)
+        except Exception:
+            pass
+        return False
+
 # ═══════════════════════════════════════════════════════════
 # 🌟 دالة التحويل الذكية
 # ═══════════════════════════════════════════════════════════
@@ -182,12 +198,9 @@ def convert_pdf_to_image():
 # ═══════════════════════════════════════════════════════════
 # 🌟 تعريف الأعمدة بالاعتماد على الترتيب (index) وليس الاسم
 # ═══════════════════════════════════════════════════════════
-# ⚠️ عدّل الأرقام لو ترتيب أعمدة شيتك مختلف:
-#   0 = التاريخ | 14 = S/S | 16 = T/B | 20 = A/B | 21 = A/S | 24 = RES. LEVEL | 29 = الفاقد
 DATE_COL_INDEX = 0
-DATE_COL = 'DATE_INTERNAL'   # اسم داخلي موحّد لعمود التاريخ بعد المعالجة
+DATE_COL = 'DATE_INTERNAL'
 
-# مفاتيح داخلية ثابتة (لا تعتمد على نص رأس العمود في الإكسل)
 VALUE_COLS = {
     'COL_SS':  {'label': 'S/S TOT AJD',    'color': '#F9CA24', 'index': 14},
     'COL_TB':  {'label': 'T/B TOT AJD',    'color': '#AFFF00', 'index': 16},
@@ -197,9 +210,6 @@ VALUE_COLS = {
     'COL_RES': {'label': 'RES. LEVEL AJD', 'color': '#FFFFFF', 'index': 24},
 }
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 تحميل البيانات بالاعتماد على ترتيب الأعمدة
-# ═══════════════════════════════════════════════════════════
 @st.cache_data(ttl=10, show_spinner=False)
 def load_tank_data(path, sheet_names):
     if isinstance(sheet_names, str):
@@ -217,10 +227,7 @@ def load_tank_data(path, sheet_names):
             raw = pd.read_excel(path, sheet_name=sheet, header=None)
 
             if raw.empty or raw.shape[1] <= max_needed:
-                info_lines.append(
-                    f"⚠️ شيت '{sheet}': عدد الأعمدة غير كافٍ "
-                    f"({raw.shape[1]} < {max_needed + 1}) → تم التخطي"
-                )
+                info_lines.append(f"⚠️ شيت '{sheet}': عدد الأعمدة غير كافٍ ({raw.shape[1]} < {max_needed + 1}) → تم التخطي")
                 continue
 
             data = pd.DataFrame()
@@ -266,9 +273,6 @@ def load_tank_data(path, sheet_names):
 
     return combined, msg
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 رسم البيانات
-# ═══════════════════════════════════════════════════════════
 def plot_tank_data(df, chart_type='lines+markers', year_label=''):
     fig = go.Figure()
     for col, meta in VALUE_COLS.items():
@@ -302,9 +306,6 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
     )
     return fig
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 إحصائيات كل خط
-# ═══════════════════════════════════════════════════════════
 def render_tank_stats(df):
     valid_items = []
     for col, meta in VALUE_COLS.items():
@@ -359,9 +360,6 @@ def render_tank_stats(df):
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 العنوان وزر العودة
-# ═══════════════════════════════════════════════════════════
 col_title, col_btn = st.columns([3, 1])
 with col_title:
     st.markdown("""
@@ -373,9 +371,6 @@ with col_btn:
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
         st.switch_page("app_main.py")
 
-# ═══════════════════════════════════════════════════════════
-# 🌟 التبويبات
-# ═══════════════════════════════════════════════════════════
 tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر | لقطة كل 30 ثانية"])
 
 with tab1:
@@ -408,6 +403,11 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
 
+    # التحقق من سلامة الملف قبل العمل عليه
+    if not is_valid_image(LOCAL_IMAGE_PATH):
+        if os.path.exists(LOCAL_IMAGE_PATH):
+            os.remove(LOCAL_IMAGE_PATH)
+            
     if os.path.exists(LOCAL_IMAGE_PATH) and is_local_network:
         if os.path.exists(NETWORK_PDF_PATH):
             net_mtime = os.path.getmtime(NETWORK_PDF_PATH)
@@ -437,16 +437,23 @@ with tab1:
 
     st.markdown("---")
 
+    # عرض الصورة مع معالجة الأخطاء
     if os.path.exists(LOCAL_IMAGE_PATH):
-        img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2200, 100, key="img_w")
-        st.image(LOCAL_IMAGE_PATH, width=img_width)
+        try:
+            img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2200, 100, key="img_w")
+            st.image(LOCAL_IMAGE_PATH, width=img_width)
 
-        with open(LOCAL_IMAGE_PATH, "rb") as f:
-            st.download_button(
-                "🖼️ تحميل الصورة PNG", data=f.read(),
-                file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
-                mime='image/png', width="stretch"
-            )
+            with open(LOCAL_IMAGE_PATH, "rb") as f:
+                st.download_button(
+                    "🖼️ تحميل الصورة PNG", data=f.read(),
+                    file_name=f'Daily_rep_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png',
+                    mime='image/png', width="stretch"
+                )
+        except Exception as e:
+            st.error(f"❌ حدث خطأ أثناء قراءة الصورة: {e}. جاري محاولة إعادة توليدها...")
+            os.remove(LOCAL_IMAGE_PATH)
+            convert_pdf_to_image()
+            st.rerun()
     else:
         st.warning("⏳ جاري تحضير التقرير... اضغط زر إعادة التوليد")
 
@@ -460,7 +467,6 @@ with tab1:
     else:
         st.caption(load_info)
 
-        # 🔍 أداة فحص اختيارية للتأكد من ترتيب الأعمدة
         with st.expander("🔍 فحص أعمدة الإكسل (للمراجعة فقط)"):
             try:
                 _raw = pd.read_excel(MAINJOB_PATH, sheet_name=MAINJOB_SHEETS[0], header=None, nrows=8)
@@ -534,11 +540,7 @@ with tab1:
                 st.markdown("### 📈 إحصائيات سريعة لكل خط")
                 render_tank_stats(df_filtered)
 
-            # ═══════════════════════════════════════════════════════════
-            # 📋 جدول الإكسل للفترة المختارة (قابل للطي)
-            # ═══════════════════════════════════════════════════════════
             st.markdown("---")
-
             with st.expander(f"📋 جدول قراءات الخطوط للفترة المختارة ({start_date} → {end_date}) — {len(df_filtered)} صف", expanded=False):
                 table_df = df_filtered.copy()
                 rename_map = {DATE_COL: 'اليوم'}
@@ -565,7 +567,6 @@ with tab1:
                 st.caption(f"📊 عدد الصفوف: {len(table_df)} — من {start_date} إلى {end_date}")
 
                 dl_col1, dl_col2 = st.columns(2)
-
                 with dl_col1:
                     csv_bytes = table_df.to_csv(index=False).encode('utf-8-sig')
                     st.download_button(
@@ -576,7 +577,6 @@ with tab1:
                         use_container_width=True,
                         key="dl_csv_table",
                     )
-
                 with dl_col2:
                     try:
                         excel_buffer = BytesIO()
@@ -593,9 +593,6 @@ with tab1:
                     except Exception as e:
                         st.info(f"ℹ️ تحميل Excel غير متاح الآن ({e}). استخدم CSV.")
 
-# ═══════════════════════════════════════════════════════════
-# 📹 تبويب المباشر
-# ═══════════════════════════════════════════════════════════
 with tab2:
     if is_local_network:
         import cv2
