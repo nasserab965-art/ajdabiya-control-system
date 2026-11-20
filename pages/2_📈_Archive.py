@@ -8,6 +8,7 @@ import pandas as pd
 import sqlite3
 import plotly.graph_objects as go
 import time
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared import check_login, apply_common_css, back_to_home_button, load_table
@@ -228,17 +229,24 @@ with col2:
     )
 
 # ─────────────────────────────────────────────────────────────
-# 3. اختيار الأعوام
+# 3. اختيار الأعوام (تم التعديل هنا)
 # ─────────────────────────────────────────────────────────────
 st.markdown("**👁️ اختر الأعوام لعرضها:**")
 year_cols = st.columns(len(available_years))
 visible_years = []
 
+# تحديد العام الحالي أو أحدث عام متاح كافتراضي
+current_year = datetime.now().year
+default_selected_year = current_year if current_year in available_years else available_years[0]
+
 for i, y in enumerate(available_years):
     with year_cols[i]:
         valid_rows = len(years_data[y].dropna(how='all')) 
-        has_data = valid_rows > 0
-        if st.checkbox(f"{y} ({valid_rows} صف)", value=has_data, key=f"show_year_{y}"):
+        
+        # تفعيل العام الافتراضي فقط (العام الحالي أو الأحدث)
+        is_checked = (y == default_selected_year)
+        
+        if st.checkbox(f"{y} ({valid_rows} صف)", value=is_checked, key=f"show_year_{y}"):
             visible_years.append(y)
 
 # ─────────────────────────────────────────────────────────────
