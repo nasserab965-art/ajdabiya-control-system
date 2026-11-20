@@ -42,6 +42,18 @@ st.markdown("""
     [data-testid="stSidebar"] h3 { font-size: 1.4rem !important; }
     button p { font-size: 16px !important; }
     .block-container { padding-left: 2rem !important; padding-right: 2rem !important; max-width: 95% !important; }
+
+    /* ⬇️ تكبير أيقونات شريط أدوات Plotly (Modebar) ⬇️ */
+    .modebar-container .modebar-btn svg {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    .modebar-container .modebar-btn {
+        padding: 6px !important;
+    }
+    .modebar-group {
+        padding: 4px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
