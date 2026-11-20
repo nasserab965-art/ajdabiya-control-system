@@ -49,6 +49,18 @@ st.markdown("""
     div[data-testid="stTabs"] {
         margin-top: -10px !important;
     }
+
+    /* ⬇️ تكبير أيقونات شريط أدوات Plotly (Modebar) ⬇️ */
+    .modebar-container .modebar-btn svg {
+        width: 26px !important;
+        height: 26px !important;
+    }
+    .modebar-container .modebar-btn {
+        padding: 6px !important;
+    }
+    .modebar-group {
+        padding: 4px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
