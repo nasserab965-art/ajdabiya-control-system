@@ -36,34 +36,12 @@ st.title("📈 أرشيف القراءات 2030 → 2025 م")
 
 st.markdown("""
 <style>
-    /* تكبير خط العناوين الفرعية (مثل أسماء السنوات) */
-    h3 {
-        font-size: 1.6rem !important;
-        font-weight: bold !important;
-    }
-    /* تكبير نصوص القوائم المنسدلة (Selectbox) */
-    div[data-baseweb="select"] > div {
-        font-size: 18px !important;
-    }
-    /* تكبير نصوص خانات الاختيار (Checkboxes) */
-    .stCheckbox label span {
-        font-size: 18px !important;
-        font-weight: bold !important;
-    }
-    /* تكبير العناوين داخل الشريط الجانبي */
-    [data-testid="stSidebar"] h3 {
-        font-size: 1.4rem !important;
-    }
-    /* تكبير نصوص الأزرار */
-    button p {
-        font-size: 16px !important;
-    }
-    /* تقليل الفراغات الجانبية لتوسيع الصفحة */
-    .block-container {
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-        max-width: 95% !important;
-    }
+    h3 { font-size: 1.6rem !important; font-weight: bold !important; }
+    div[data-baseweb="select"] > div { font-size: 18px !important; }
+    .stCheckbox label span { font-size: 18px !important; font-weight: bold !important; }
+    [data-testid="stSidebar"] h3 { font-size: 1.4rem !important; }
+    button p { font-size: 16px !important; }
+    .block-container { padding-left: 2rem !important; padding-right: 2rem !important; max-width: 95% !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -88,11 +66,9 @@ def sync_all_excel_to_db():
         if df.empty or df.dropna(how='all').empty:
             continue
         
-        # تنظيف أسماء الأعمدة من المسافات
         df.columns = [str(c).strip() for c in df.columns]
         df = df.dropna(how='all').reset_index(drop=True)
 
-        # البحث عن عمود التاريخ
         date_col = None
         for col in df.columns:
             if 'اليوم' in col or 'date' in col.lower() or 'تاريخ' in col:
@@ -128,7 +104,6 @@ def sync_all_excel_to_db():
 with st.sidebar:
     st.markdown("### ⚙️ إدارة البيانات")
     
-    # زر المزامنة
     if st.button("🔄 تحديث البيانات من الإكسل", use_container_width=True, type="primary"):
         with st.spinner("جاري المزامنة..."):
             success, msg = sync_all_excel_to_db()
@@ -142,7 +117,6 @@ with st.sidebar:
                 
     st.markdown("---")
     
-    # زر الفحص
     if st.button("🔍 فحص قاعدة البيانات (2027)", use_container_width=True):
         try:
             conn = sqlite3.connect('app_data.db')
@@ -184,7 +158,7 @@ if not years_data:
 available_years = [y for y in YEARS_DESC if y in years_data]
 
 # ─────────────────────────────────────────────────────────────
-# 2. التحكم بالأعمدة (مرن - يجمع الأعمدة من كل السنوات)
+# 2. التحكم بالأعمدة
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
 col1, col2 = st.columns([1, 3])
@@ -224,7 +198,7 @@ with col2:
     )
 
 # ─────────────────────────────────────────────────────────────
-# 3. اختيار الأعوام (العام الحالي افتراضياً)
+# 3. اختيار الأعوام
 # ─────────────────────────────────────────────────────────────
 st.markdown("**👁️ اختر الأعوام لعرضها:**")
 year_cols = st.columns(len(available_years))
@@ -250,6 +224,26 @@ with st.expander("⚙️ إعدادات توضيح المحاور (Axes Settings
         custom_x_title = st.text_input("عنوان محور X", value="", placeholder="مثال: التاريخ")
     with ax_col2:
         custom_y_title = st.text_input("عنوان محور Y", value="القيمة", placeholder="مثال: الكمية (م³)")
+    
+    st.markdown("---")
+    st.markdown("**تخصيص نطاق المحور Y (اختياري):**")
+    range_col1, range_col2 = st.columns(2)
+    
+    y_min_global, y_max_global = float('inf'), float('-inf')
+    for y in visible_years:
+        for col in y_cols:
+            if col in years_data[y].columns and not years_data[y][col].dropna().empty:
+                y_min_global = min(y_min_global, years_data[y][col].min())
+                y_max_global = max(y_max_global, years_data[y][col].max())
+    
+    if y_min_global == float('inf'): y_min_global = 0
+    if y_max_global == float('-inf'): y_max_global = 100
+
+    with range_col1:
+        y_min_custom = st.number_input("الحد الأدنى للمحور Y", value=float(y_min_global), format="%.2f")
+    with range_col2:
+        y_max_custom = st.number_input("الحد الأعلى للمحور Y", value=float(y_max_global), format="%.2f")
+
     st.markdown("---")
     f_col1, f_col2, f_col3 = st.columns(3)
     with f_col1: tick_font = st.slider("حجم أرقام المحاور", 10, 24, 14)
@@ -267,18 +261,10 @@ if not visible_years:
     st.stop()
 
 # ─────────────────────────────────────────────────────────────
-# 5. الرسم البياني (بعد التحسين الجمالي)
+# 5. الرسم البياني
 # ─────────────────────────────────────────────────────────────
 st.markdown("---")
-# ألوان أكثر حداثة وجمالاً (أزرق ملكي، أخضر زمردي، برتقالي، بنفسجي، إلخ)
 COLORS = ['#1f77b4', '#2ca02c', '#ff7f0e', '#9467bd', '#d62728', '#17becf', '#e377c2', '#8c564b']
-
-y_min_global, y_max_global = float('inf'), float('-inf')
-for y in visible_years:
-    for col in y_cols:
-        if col in years_data[y].columns and not years_data[y][col].dropna().empty:
-            y_min_global = min(y_min_global, years_data[y][col].min())
-            y_max_global = max(y_max_global, years_data[y][col].max())
 
 final_x_title = custom_x_title if custom_x_title.strip() else x_axis
 final_y_title = custom_y_title if custom_y_title.strip() else "القيمة"
@@ -287,10 +273,8 @@ for y in visible_years:
     df = years_data[y]
     if df[y_cols].dropna(how='all').empty: continue
         
-    # تنسيق عنوان السنة
     st.markdown(
-    f"<h2 style='font-size: 28px; color: {'#2ca02c' if y == default_selected_year else '#1f77b4'}; "
-    f"margin-bottom: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);'>"
+    f"<h2 style='font-size: 28px; color: {'#2ca02c' if y == default_selected_year else '#1f77b4'}; margin-bottom: 15px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);'>"
     f"{'🟢' if y == default_selected_year else '🔵'} {y}"
     f"</h2>", 
     unsafe_allow_html=True
@@ -302,58 +286,60 @@ for y in visible_years:
         if col not in df.columns: continue
         color = COLORS[i % len(COLORS)]
         
-        # إضافة المنحنى بتأثيرات جمالية (تعبئة خفيفة أسفل الخط + نقاط أنيقة)
         fig.add_trace(go.Scatter(
             x=df[x_axis] if x_axis in df.columns else df.index,
             y=df[col], 
             mode='lines+markers', 
             name=f"{col} ({y})",
-            line=dict(color=color, width=3, shape='spline'), # shape='spline' لخطوط ناعمة
-            marker=dict(size=7, color=color, line=dict(width=1, color='white')), # نقاط بحدود بيضاء
-            fill='tozeroy', # تعبئة خفيفة أسفل الخط للجمالية
-            fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)', # شفافية 10%
+            line=dict(color=color, width=3, shape='spline'),
+            marker=dict(size=7, color=color, line=dict(width=1, color='white')),
+            fill='tozeroy',
+            fillcolor=f'rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.1)',
             connectgaps=False,
-            hovertemplate="<b>%{y:,.2f}</b><br>%{x}<extra></extra>" # تنسيق الـ Hover
+            hovertemplate="<b>%{y:,.2f}</b><br>%{x}<extra></extra>"
         ))
         
     fig.update_layout(
         height=450, 
         hovermode='x unified',
-        # خلفية بيضاء نظيفة
         plot_bgcolor='rgba(250,250,252,1)', 
         paper_bgcolor='rgba(255,255,255,1)',
         xaxis_title=dict(text=final_x_title, font=dict(size=title_font, color='#333')),
         yaxis_title=dict(text=final_y_title, font=dict(size=title_font, color='#333')),
         legend=dict(
-            orientation="h", 
-            yanchor="bottom", 
-            y=1.05, 
-            xanchor="center", 
-            x=0.5, 
-            bgcolor='rgba(255,255,255,0.8)',
-            bordercolor='rgba(0,0,0,0.1)',
-            borderwidth=1
+            orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, 
+            bgcolor='rgba(255,255,255,0.8)', bordercolor='rgba(0,0,0,0.1)', borderwidth=1
         ),
         margin=dict(l=20, r=20, t=50, b=20),
+        
         yaxis=dict(
-            range=[y_min_global, y_max_global], 
+            range=[y_min_custom, y_max_custom],
             showgrid=show_grid, 
-            gridcolor='rgba(0,0,0,0.05)', # شبكة خفيفة جداً
+            gridcolor='rgba(0,0,0,0.08)',
+            gridwidth=1,
+            griddash='dot',
             zeroline=True,
-            zerolinecolor='rgba(0,0,0,0.1)',
-            tickfont=dict(size=tick_font, color='#555')
+            zerolinecolor='rgba(0,0,0,0.2)',
+            zerolinewidth=2,
+            tickfont=dict(size=tick_font, color='#444'),
+            tickformat=',.0f', 
+            title_font=dict(size=title_font, color='#333'),
+            showline=True,
+            linewidth=2,
+            linecolor='rgba(0,0,0,0.2)'
         ),
         xaxis=dict(
             showgrid=show_grid, 
-            gridcolor='rgba(0,0,0,0.05)', 
-            tickfont=dict(size=tick_font, color='#555'), 
-            showspikes=True, spikemode="across", spikesnap="cursor", spikedash="dot", spikecolor="gray", spikethickness=1
+            gridcolor='rgba(0,0,0,0.08)', 
+            gridwidth=1,
+            griddash='dot',
+            tickfont=dict(size=tick_font, color='#444'), 
+            showspikes=True, spikemode="across", spikesnap="cursor", spikedash="dot", spikecolor="gray", spikethickness=1,
+            showline=True,
+            linewidth=2,
+            linecolor='rgba(0,0,0,0.2)'
         ),
-        hoverlabel=dict(
-            bgcolor="white", 
-            font_size=14, 
-            font_family="Arial"
-        )
+        hoverlabel=dict(bgcolor="white", font_size=14, font_family="Arial")
     )
     
     try: 
@@ -361,7 +347,6 @@ for y in visible_years:
     except Exception: 
         pass
         
-    # عرض الرسم مع إمكانية تحميله كصورة
     st.plotly_chart(
         fig, 
         use_container_width=True, 
