@@ -540,7 +540,6 @@ with tab1:
             st.markdown("---")
 
             with st.expander(f"📋 جدول قراءات الخطوط للفترة المختارة ({start_date} → {end_date}) — {len(df_filtered)} صف", expanded=False):
-                # بناء جدول عرض بأسماء مقروءة
                 table_df = df_filtered.copy()
                 rename_map = {DATE_COL: 'اليوم'}
                 for key, meta in VALUE_COLS.items():
@@ -554,7 +553,6 @@ with tab1:
                 ordered_cols = ['اليوم'] + [m['label'] for m in VALUE_COLS.values() if m['label'] in table_df.columns]
                 table_df = table_df[ordered_cols]
 
-                # عرض الجدول منسّق
                 st.dataframe(
                     table_df.style.format({
                         col: '{:,.2f}' for col in ordered_cols if col != 'اليوم'
@@ -566,7 +564,6 @@ with tab1:
 
                 st.caption(f"📊 عدد الصفوف: {len(table_df)} — من {start_date} إلى {end_date}")
 
-                # أزرار التحميل
                 dl_col1, dl_col2 = st.columns(2)
 
                 with dl_col1:
@@ -618,4 +615,134 @@ with tab2:
                         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
                         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
                         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                        time.sleep(0.2)
+                        ok = False
+                        for _ in range(3):
+                            ret, f = cap.read()
+                            if ret and f is not None and f.size > 0:
+                                ok = True
+                                break
+                            time.sleep(0.1)
+                        if ok:
+                            return cap, f"{name} (index={idx})"
+                        cap.release()
+                    except Exception:
+                        pass
+            return None, None
+
+        c1, c2, c3 = st.columns([3, 1, 1])
+        with c1:
+            st.markdown("<div style='color:#4A90D9;font-weight:bold;padding-top:8px;'>📺 وضع المزج الذكي: بث حي + خطة بديلة تلقائية</div>", unsafe_allow_html=True)
+        with c2:
+            if st.button("🔄 إعادة محاولة", width="stretch", key="retry_cam"):
+                st.rerun()
+        with c3:
+            show_fallback_only = st.checkbox("📸 صورة فقط", value=False, key="fallback_only")
+
+        st.markdown("---")
+
+        if not show_fallback_only:
+            cap, info = _open_streamlit_camera()
+
+            if cap is not None and cap.isOpened():
+                st.success(f"🟢 بث حي — {info}")
+                frame_ph = st.empty()
+                stop_ph = st.empty()
+                stop_clicked = stop_ph.button("⏹️ إيقاف البث", key="stop_stream_btn")
+
+                if not stop_clicked:
+                    fail_count = 0
+                    try:
+                        while fail_count < 30:
+                            ret, frame = cap.read()
+                            if not ret or frame is None:
+                                fail_count += 1
+                                time.sleep(0.1)
+                                continue
+                            fail_count = 0
+                            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                            frame_ph.image(frame_rgb, channels="RGB", use_container_width=True)
+                            time.sleep(0.03)
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            cap.release()
+                        except Exception:
+                            pass
+                else:
+                    try:
+                        cap.release()
+                    except Exception:
+                        pass
+                    st.rerun()
+            else:
+                st.warning("🟡 الكاميرا مشغولة الآن (ربما يلتقط السكربت الخارجي صورة). سيعرض آخر صورة محفوظة — أعد المحاولة بعد ثانية.")
+                if os.path.exists(LOCAL_CAMERA_PATH):
+                    mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
+                    age = (datetime.now() - mtime).total_seconds()
+                    st.caption(f"📸 آخر لقطة: {mtime.strftime('%H:%M:%S')} (قبل {int(age)}ث)")
+                    with open(LOCAL_CAMERA_PATH, "rb") as f:
+                        st.image(f.read(), use_container_width=True)
+                else:
+                    st.info("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
+                st_autorefresh(interval=2000, key="auto_retry_cam")
+        else:
+            st_autorefresh(interval=20000, key="local_camera_refresh")
+            if os.path.exists(LOCAL_CAMERA_PATH):
+                mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
+                age = (datetime.now() - mtime).total_seconds()
+                if age <= 90:
+                    st.success(f"🟢 آخر لقطة قبل {int(age)} ثانية ({mtime.strftime('%H:%M:%S')})")
+                elif age <= 300:
+                    st.warning(f"🟡 آخر لقطة قبل {int(age//60)} دقيقة")
+                else:
+                    st.error(f"🔴 آخر لقطة قبل {int(age//60)} دقيقة — تأكد من تشغيل `camera_capture.py`")
+
+                with open(LOCAL_CAMERA_PATH, "rb") as f:
+                    img_bytes = f.read()
+                
+                st.image(img_bytes, use_container_width=True)
+                
+                st.caption(f"🕐 {mtime.strftime('%Y-%m-%d %H:%M:%S')} — {len(img_bytes)//1024} KB")
+            else:
+                st.warning("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
+    else:
+        # ☁️ السحابة
+        st_autorefresh(interval=20000, key="camera_refresh")
+        
+        GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+        GITHUB_API_URL = f"https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
+        
+        if not GITHUB_TOKEN:
+            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
+        else:
+            try:
+                headers = {
+                    "Authorization": f"token {GITHUB_TOKEN}", 
+                    "Cache-Control": "no-cache"
+                }
+                response = requests.get(GITHUB_API_URL, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    file_data = response.json()
+                    content_b64 = file_data.get("content")
+                    if content_b64:
+                        img_bytes = base64.b64decode(content_b64)
+                        img = Image.open(BytesIO(img_bytes))
+                        st.image(img, use_container_width=True)
+                        st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 20 ثانية.")
+                    else:
+                        st.warning("⚠️ الصورة موجودة لكن لا تحتوي على بيانات.")
+                else:
+                    st.warning(f"⚠️ فشل جلب الصورة. كود الخطأ: {response.status_code}")
+            except Exception as e:
+                st.error(f"❌ حدث خطأ: {e}")
+
+st.markdown("---")
+st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col3:
+    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
+        st.switch_page("app_main.py")
