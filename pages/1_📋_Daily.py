@@ -137,10 +137,9 @@ def is_valid_image(image_path):
         if not os.path.exists(image_path) or os.path.getsize(image_path) == 0:
             return False
         with Image.open(image_path) as img:
-            img.verify()  # يتحقق من سلامة البيانات
+            img.verify()
         return True
     except Exception:
-        # إذا كانت تالفة، نقوم بحذفها ليقوم النظام بإنشائها من جديد
         try:
             os.remove(image_path)
         except Exception:
@@ -403,7 +402,6 @@ with tab1:
 
     st.markdown("### 📋 التقرير اليومي - Daily_rep")
 
-    # التحقق من سلامة الملف قبل العمل عليه
     if not is_valid_image(LOCAL_IMAGE_PATH):
         if os.path.exists(LOCAL_IMAGE_PATH):
             os.remove(LOCAL_IMAGE_PATH)
@@ -437,7 +435,6 @@ with tab1:
 
     st.markdown("---")
 
-    # عرض الصورة مع معالجة الأخطاء
     if os.path.exists(LOCAL_IMAGE_PATH):
         try:
             img_width = st.slider("🔍 حجم العرض:", 600, 2500, 2200, 100, key="img_w")
@@ -555,10 +552,12 @@ with tab1:
                 ordered_cols = ['اليوم'] + [m['label'] for m in VALUE_COLS.values() if m['label'] in table_df.columns]
                 table_df = table_df[ordered_cols]
 
+                # عرض الجدول مع توسيط القيم والعناوين
                 st.dataframe(
-                    table_df.style.format({
-                        col: '{:,.2f}' for col in ordered_cols if col != 'اليوم'
-                    }),
+                    table_df.style
+                    .format({col: '{:,.2f}' for col in ordered_cols if col != 'اليوم'})
+                    .set_properties(**{'text-align': 'center'})
+                    .set_table_styles([dict(selector='th', props=[('text-align', 'center')])]),
                     use_container_width=True,
                     hide_index=True,
                     height=min(600, 40 + 35 * len(table_df)),
