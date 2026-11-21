@@ -18,7 +18,15 @@ import base64
 import zipfile
 from datetime import datetime
 from openpyxl.utils import column_index_from_string
+# حماية الصفحة
+if 'user_level' not in st.session_state or st.session_state.user_level == 0:
+    st.error("⛔ غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً.")
+    st.stop()
 
+# صلاحية الخرائط(مثلاً: 1, 2, 3 ,4 ,5)
+if st.session_state.user_level not in [1, 2, 3, 4, 5]:
+    st.error("⛔ عذراً، حسابك لا يملك الصلاحية لعرض هذه الصفحة.")
+    st.stop()
 # استيراد الدوال المشتركة من ملف shared.py
 from shared import check_login, apply_common_css, back_to_home_button
 
