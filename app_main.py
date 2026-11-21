@@ -10,11 +10,11 @@ import base64
 # 🔐 إعدادات المستخدمين والصلاحيات (5 مستويات)
 # ═══════════════════════════════════════════════════════════
 USERS = {
-    "c6710778a5df9e92f1857abddff9d8a4c0c2b973c0d23e2988a042f940eadd7a": {"level": 1, "name": "المدير العام"}, 
-    "208d20407831067e438cd6b364e86ae98b9864cabc0658b812f8d8dedc00ec2da": {"level": 2, "name": "مسؤول الأرشيف"},
-    "2dbd07bad64ae51e48cdadd7c59db0a99b514411724441b3ebd64684983702d9": {"level": 3, "name": "فني غرف التحكم"},
-    "76801bb51278ecf1e54d6a4802dd48bcf92866ecfe6a177d20c09bad83fe4db0": {"level": 4, "name": "مراقب"},
-    "2d1e844ff58e0ddaadd2e721d4cbfbaeea97f93401146acd936b1b95c7c06292": {"level": 5, "name": "زائر"},
+    "c6710778a5df9e92f1857abddff9d8a4c0c2b973c0d23e2988a042f940eadd7a": {"level": 1, "name": "المستوى الأول"}, 
+    "208d20407831067e438cd6b364e86ae98b9864cabc0658b812f8d8dedc00ec2da": {"level": 2, "name": "المستوى الثانى"},
+    "2dbd07bad64ae51e48cdadd7c59db0a99b514411724441b3ebd64684983702d9": {"level": 3, "name": "المستوى الثالث"},
+    "76801bb51278ecf1e54d6a4802dd48bcf92866ecfe6a177d20c09bad83fe4db0": {"level": 4, "name": "المستوى الرابع"},
+    "2d1e844ff58e0ddaadd2e721d4cbfbaeea97f93401146acd936b1b95c7c06292": {"level": 5, "name": "المستوى الخامس"},
 }
 
 # مسار صورة الخلفية
