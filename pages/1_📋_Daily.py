@@ -15,8 +15,8 @@ if 'user_level' not in st.session_state or st.session_state.user_level == 0:
     st.error("⛔ غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً.")
     st.stop()
 
-# صلاحية الأرشيف (مثلاً: 1 ,2 ,3 ,4 ,5)
-if st.session_state.user_level not in [1, 2, 3, 4, 5]:
+# صلاحية الأرشيف (مثلاً: 1 ,2 ,3)
+if st.session_state.user_level not in [1, 2, 3]:
     st.error("⛔ عذراً، حسابك لا يملك الصلاحية لعرض هذه الصفحة.")
     st.stop()
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
