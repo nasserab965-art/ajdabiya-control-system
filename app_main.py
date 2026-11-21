@@ -24,7 +24,7 @@ USERS = {
     
     # المستوى 5: كلمة المرور PH12891
     "2d1e844ff58e0ddaadd2e721d4cbfbaeea97f93401146acd936b1b95c7c06292": {"level": 5, "name": "زائر"},
-}g"
+    }
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
