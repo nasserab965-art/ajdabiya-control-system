@@ -1,29 +1,24 @@
 """
-🏠 الصفحة الرئيسية — حل نهائي مخصص
+🏠 الصفحة الرئيسية — نظام تسجيل الدخول متعدد المستويات
 """
 import streamlit as st
 import os
 import hashlib
 import base64
+
 # ═══════════════════════════════════════════════════════════
 # 🔐 إعدادات المستخدمين والصلاحيات (5 مستويات)
 # ═══════════════════════════════════════════════════════════
 USERS = {
-    # المستوى 1: كلمة المرور GMMRA_599111
     "c6710778a5df9e92f1857abddff9d8a4c0c2b973c0d23e2988a042f940eadd7a": {"level": 1, "name": "المدير العام"}, 
-    
-    # المستوى 2: كلمة المرور AJD_58842
     "208d20407831067e438cd6b364e86ae98b9864cabc0658b812f8d8dedc00ec2da": {"level": 2, "name": "مسؤول الأرشيف"},
-    
-    # المستوى 3: كلمة المرور BEN_SIR4002
     "2dbd07bad64ae51e48cdadd7c59db0a99b514411724441b3ebd64684983702d9": {"level": 3, "name": "فني غرف التحكم"},
-    
-    # المستوى 4: كلمة المرور SAR_TAZ110217
     "76801bb51278ecf1e54d6a4802dd48bcf92866ecfe6a177d20c09bad83fe4db0": {"level": 4, "name": "مراقب"},
-    
-    # المستوى 5: كلمة المرور PH12891
     "2d1e844ff58e0ddaadd2e721d4cbfbaeea97f93401146acd936b1b95c7c06292": {"level": 5, "name": "زائر"},
-    }
+}
+
+# مسار صورة الخلفية
+BACKGROUND_IMAGE_PATH = "gmmra1.jpg"
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -40,6 +35,8 @@ st.set_page_config(
 # ═══════════════════════════════════════════════════════════
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
+    st.session_state.user_level = 0
+    st.session_state.user_name = ""
 
 if not st.session_state.logged_in:
     st.markdown("""
@@ -80,12 +77,8 @@ if not st.session_state.logged_in:
         
         pwd = st.text_input("🔑 الرقم السري", type="password", key="pwd_main")
         if st.button("🚪 دخول", use_container_width=True, type="primary", key="login_main"):
-            # تشفير كلمة المرور التي أدخلها المستخدم
             hashed_input = hash_password(pwd)
-            
-            # التحقق مما إذا كانت كلمة المرور موجودة في قاموس المستخدمين
             if hashed_input in USERS:
-                # تسجيل الدخول بنجاح وحفظ بيانات المستخدم
                 st.session_state.logged_in = True
                 st.session_state.user_level = USERS[hashed_input]["level"]
                 st.session_state.user_name = USERS[hashed_input]["name"]
@@ -95,7 +88,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS العام (بدون أي إجبار للاتجاه)
+# 🎨 CSS العام
 # ═══════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -103,10 +96,7 @@ st.markdown("""
     header[data-testid="stHeader"] { display: none !important; }
     [data-testid="stToolbar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
-    
-    /* 🛑 إخفاء زر Manage app */
     [data-testid="manage-app-button"] { display: none !important; }
-    
     footer { display: none !important; }
     
     html, body {
@@ -159,40 +149,6 @@ st.markdown("""
         border: none;
         display: block;
     }
-
-    /* شريط الأدوات المخصص */
-    .custom-toolbar {
-        position: fixed;
-        top: 15px;
-        right: 20px;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        background: rgba(0, 0, 0, 0.4);
-        padding: 8px 18px;
-        border-radius: 30px;
-        backdrop-filter: blur(5px);
-        direction: ltr;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    
-    .custom-toolbar a, .custom-toolbar span {
-        color: #FFFFFF !important;
-        text-decoration: none;
-        font-size: 20px;
-        cursor: pointer;
-        transition: 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: normal;
-    }
-    
-    .custom-toolbar a:hover, .custom-toolbar span:hover {
-        color: #F9CA24 !important;
-        transform: scale(1.15);
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -207,9 +163,8 @@ if os.path.exists(BACKGROUND_IMAGE_PATH):
         unsafe_allow_html=True
     )
 
-
 # ═══════════════════════════════════════════════════════════
-# 🎨 CSS للأزرار — تصميم متدرج
+# 🎨 CSS للأزرار
 # ═══════════════════════════════════════════════════════════
 st.html("""
 <style>
@@ -251,67 +206,88 @@ st.html("""
         background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 50%, #E74C3C 100%) !important;
         box-shadow: 0 8px 25px rgba(231, 76, 60, 0.7) !important;
     }
-    button[key="go_daily"]:hover {
-        box-shadow: 0 14px 35px rgba(231, 76, 60, 1) !important;
-    }
+    button[key="go_daily"]:hover { box-shadow: 0 14px 35px rgba(231, 76, 60, 1) !important; }
     
     button[key="go_archive"] {
         background: linear-gradient(135deg, #8E2DE2 0%, #A569BD 50%, #7D3C98 100%) !important;
         box-shadow: 0 8px 25px rgba(125, 60, 152, 0.7) !important;
     }
-    button[key="go_archive"]:hover {
-        box-shadow: 0 14px 35px rgba(125, 60, 152, 1) !important;
-    }
+    button[key="go_archive"]:hover { box-shadow: 0 14px 35px rgba(125, 60, 152, 1) !important; }
     
     button[key="go_maps"] {
         background: linear-gradient(135deg, #11998E 0%, #38EF7D 50%, #1E8449 100%) !important;
         box-shadow: 0 8px 25px rgba(30, 132, 73, 0.7) !important;
     }
-    button[key="go_maps"]:hover {
-        box-shadow: 0 14px 35px rgba(30, 132, 73, 1) !important;
-    }
+    button[key="go_maps"]:hover { box-shadow: 0 14px 35px rgba(30, 132, 73, 1) !important; }
     
     button[key="go_album"] {
         background: linear-gradient(135deg, #2980B9 0%, #6DD5FA 50%, #FFFFFF 100%) !important;
         box-shadow: 0 8px 25px rgba(41, 128, 185, 0.7) !important;
         color: #000 !important;
     }
-    button[key="go_album"]:hover {
-        box-shadow: 0 14px 35px rgba(41, 128, 185, 1) !important;
-    }
+    button[key="go_album"]:hover { box-shadow: 0 14px 35px rgba(41, 128, 185, 1) !important; }
     
     button[key="logout_main"] {
         background: linear-gradient(135deg, #C0392B 0%, #E74C3C 100%) !important;
         min-height: 55px !important;
         font-size: 18px !important;
     }
-    button[key="logout_main"] * {
-        font-size: 18px !important;
-    }
+    button[key="logout_main"] * { font-size: 18px !important; }
 </style>
 """)
 
 # ═══════════════════════════════════════════════════════════
-# 🎯 الأزرار الرئيسية
+# 🎯 الأزرار الرئيسية (مع الصلاحيات)
 # ═══════════════════════════════════════════════════════════
 st.markdown("<br>" * 12, unsafe_allow_html=True)
+
+# عرض رسالة ترحيبية
+st.markdown(f"<h3 style='text-align: right; color: white; padding-right: 20px;'>مرحباً، {st.session_state.user_name} 👋</h3>", unsafe_allow_html=True)
 
 col_left, col_spacer = st.columns([1, 3])
 
 with col_left:
-    if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
-        st.switch_page("pages/1_📋_Daily.py")
-    
-    if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
-        st.switch_page("pages/2_📈_Archive.py")
-    
-    if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
-        st.switch_page("pages/3_🗺️_Maps.py")
-    
-    if st.button("🖼️  معرض الصور (الألبوم)", key="go_album", use_container_width=True):
-        st.switch_page("pages/4_🖼️_Album.py")
-    
+    level = st.session_state.user_level
+
+    # المستوى 1 (المدير): يرى كل شيء
+    if level == 1:
+        if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
+            st.switch_page("pages/1_📋_Daily.py")
+        if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
+            st.switch_page("pages/2_📈_Archive.py")
+        if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
+            st.switch_page("pages/3_🗺️_Maps.py")
+        if st.button("🖼️  معرض الصور (الألبوم)", key="go_album", use_container_width=True):
+            st.switch_page("pages/4_🖼️_Album.py")
+            
+    # المستوى 2: يرى التقارير والأرشيف فقط
+    elif level == 2:
+        if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
+            st.switch_page("pages/1_📋_Daily.py")
+        if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
+            st.switch_page("pages/2_📈_Archive.py")
+
+    # المستوى 3: يرى الخرائط والألبوم فقط
+    elif level == 3:
+        if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
+            st.switch_page("pages/3_🗺️_Maps.py")
+        if st.button("🖼️  معرض الصور (الألبوم)", key="go_album", use_container_width=True):
+            st.switch_page("pages/4_🖼️_Album.py")
+
+    # المستوى 4: يرى الأرشيف فقط
+    elif level == 4:
+        if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
+            st.switch_page("pages/2_📈_Archive.py")
+
+    # المستوى 5 (زائر): يرى التقرير اليومي فقط
+    elif level == 5:
+         if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
+            st.switch_page("pages/1_📋_Daily.py")
+
+    # زر الخروج يظهر للجميع
     if st.button("🚪  تسجيل الخروج", key="logout_main", use_container_width=True):
         st.session_state.logged_in = False
+        st.session_state.user_level = 0
+        st.session_state.user_name = ""
         st.query_params.clear()
         st.rerun()
