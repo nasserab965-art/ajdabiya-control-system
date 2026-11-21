@@ -1,5 +1,5 @@
 """
-الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة ذكية)
+الصفحة 1: التقرير اليومي + الكاميرات + قراءات الخطوط (نسخة ذكية مع الصلاحيات)
 """
 import sys
 import os
@@ -10,18 +10,20 @@ from datetime import datetime, date, timedelta
 from io import BytesIO
 import streamlit as st
 
-# حماية الصفحة
+# ═══════════════════════════════════════════════════════════
+# 🛡️ حماية الصفحة (يجب أن تكون في البداية)
+# ═══════════════════════════════════════════════════════════
 if 'user_level' not in st.session_state or st.session_state.user_level == 0:
     st.error("⛔ غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً.")
     st.stop()
 
-# صلاحية الأرشيف (مثلاً: 1 ,2 ,3)
+# صلاحية التقرير اليومى (مسموح للمستويات 1 ,2 ,3)
 if st.session_state.user_level not in [1, 2, 3]:
     st.error("⛔ عذراً، حسابك لا يملك الصلاحية لعرض هذه الصفحة.")
     st.stop()
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import fitz
@@ -67,19 +69,19 @@ st.markdown("""
     }
     
     .modebar-btn {
-        padding: 10px !important; /* مساحة داخلية أكبر */
-        margin: 4px 2px !important; /* مسافة خارجية بين الأيقونات */
+        padding: 10px !important;
+        margin: 4px 2px !important;
     }
     
     .modebar-btn svg {
         width: 24px !important;
         height: 24px !important;
-        transform: scale(1.3) !important; /* تكبير الرسمة نفسها */
+        transform: scale(1.3) !important;
     }
     
     .modebar-group {
         padding: 5px !important;
-        margin-bottom: 12px !important; /* مسافة فاصلة بين المجموعات */
+        margin-bottom: 12px !important;
     }
     
     .modebar {
@@ -169,7 +171,6 @@ def add_watermark_to_image(image_path, text="غرفة تحكم اجدابيا"):
         pass
 
 def is_valid_image(image_path):
-    """التحقق من أن الملف صورة سليمة وغير تالفة قبل عرضها"""
     try:
         if not os.path.exists(image_path) or os.path.getsize(image_path) == 0:
             return False
@@ -340,7 +341,6 @@ def plot_tank_data(df, chart_type='lines+markers', year_label=''):
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5, bgcolor='rgba(11, 30, 63, 0.9)', bordercolor='#4A90D9', borderwidth=2, font=dict(size=14, color='#FFFFFF')),
         margin=dict(l=70, r=30, t=100, b=70), height=550, dragmode='pan',
         
-        # إعدادات شريط الأدوات المدمجة
         modebar=dict(
             orientation='v',
             bgcolor='rgba(11, 30, 63, 0.7)',
@@ -415,7 +415,16 @@ with col_btn:
     if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_top"):
         st.switch_page("app_main.py")
 
-tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر | لقطة كل 30 ثانية"])
+# ═══════════════════════════════════════════════════════════
+# 🎯 بناء التبويبات بناءً على الصلاحيات
+# ═══════════════════════════════════════════════════════════
+# صلاحية عرض الكاميرات المباشرة (اجعلها 1 فقط للمدير، أو 1 و 3 للفنيين)
+can_view_camera = st.session_state.user_level in [1] 
+
+if can_view_camera:
+    tab1, tab2 = st.tabs(["📋 التقرير اليومي", "📹 المباشر | لقطة كل 30 ثانية"])
+else:
+    tab1, = st.tabs(["📋 التقرير اليومي"])
 
 with tab1:
     st.markdown("""
@@ -608,182 +617,4 @@ with tab1:
                     height=min(600, 40 + 35 * len(table_df)),
                 )
 
-                st.caption(f"📊 عدد الصفوف: {len(table_df)} — من {start_date} إلى {end_date}")
-
-                dl_col1, dl_col2 = st.columns(2)
-                with dl_col1:
-                    csv_bytes = table_df.to_csv(index=False).encode('utf-8-sig')
-                    st.download_button(
-                        "⬇️ تحميل CSV",
-                        data=csv_bytes,
-                        file_name=f'tank_readings_{start_date}_{end_date}.csv',
-                        mime='text/csv',
-                        use_container_width=True,
-                        key="dl_csv_table",
-                    )
-                with dl_col2:
-                    try:
-                        excel_buffer = BytesIO()
-                        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-                            table_df.to_excel(writer, index=False, sheet_name='قراءات الخطوط')
-                        st.download_button(
-                            "⬇️ تحميل Excel",
-                            data=excel_buffer.getvalue(),
-                            file_name=f'tank_readings_{start_date}_{end_date}.xlsx',
-                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            use_container_width=True,
-                            key="dl_xlsx_table",
-                        )
-                    except Exception as e:
-                        st.info(f"ℹ️ تحميل Excel غير متاح الآن ({e}). استخدم CSV.")
-
-with tab2:
-    if is_local_network:
-        import cv2
-
-        def _open_streamlit_camera():
-            for backend, name in [
-                (cv2.CAP_DSHOW, "DSHOW"),
-                (cv2.CAP_MSMF,  "MSMF"),
-                (cv2.CAP_ANY,   "ANY"),
-            ]:
-                for idx in range(4):
-                    try:
-                        cap = cv2.VideoCapture(idx, backend)
-                        if not cap.isOpened():
-                            cap.release()
-                            continue
-                        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-                        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-                        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                        time.sleep(0.2)
-                        ok = False
-                        for _ in range(3):
-                            ret, f = cap.read()
-                            if ret and f is not None and f.size > 0:
-                                ok = True
-                                break
-                            time.sleep(0.1)
-                        if ok:
-                            return cap, f"{name} (index={idx})"
-                        cap.release()
-                    except Exception:
-                        pass
-            return None, None
-
-        c1, c2, c3 = st.columns([3, 1, 1])
-        with c1:
-            st.markdown("<div style='color:#4A90D9;font-weight:bold;padding-top:8px;'>📺 وضع المزج الذكي: بث حي + خطة بديلة تلقائية</div>", unsafe_allow_html=True)
-        with c2:
-            if st.button("🔄 إعادة محاولة", width="stretch", key="retry_cam"):
-                st.rerun()
-        with c3:
-            show_fallback_only = st.checkbox("📸 صورة فقط", value=False, key="fallback_only")
-
-        st.markdown("---")
-
-        if not show_fallback_only:
-            cap, info = _open_streamlit_camera()
-
-            if cap is not None and cap.isOpened():
-                st.success(f"🟢 بث حي — {info}")
-                frame_ph = st.empty()
-                stop_ph = st.empty()
-                stop_clicked = stop_ph.button("⏹️ إيقاف البث", key="stop_stream_btn")
-
-                if not stop_clicked:
-                    fail_count = 0
-                    try:
-                        while fail_count < 30:
-                            ret, frame = cap.read()
-                            if not ret or frame is None:
-                                fail_count += 1
-                                time.sleep(0.1)
-                                continue
-                            fail_count = 0
-                            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                            frame_ph.image(frame_rgb, channels="RGB", use_container_width=True)
-                            time.sleep(0.03)
-                    except Exception:
-                        pass
-                    finally:
-                        try:
-                            cap.release()
-                        except Exception:
-                            pass
-                else:
-                    try:
-                        cap.release()
-                    except Exception:
-                        pass
-                    st.rerun()
-            else:
-                st.warning("🟡 الكاميرا مشغولة الآن (ربما يلتقط السكربت الخارجي صورة). سيعرض آخر صورة محفوظة — أعد المحاولة بعد ثانية.")
-                if os.path.exists(LOCAL_CAMERA_PATH):
-                    mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
-                    age = (datetime.now() - mtime).total_seconds()
-                    st.caption(f"📸 آخر لقطة: {mtime.strftime('%H:%M:%S')} (قبل {int(age)}ث)")
-                    with open(LOCAL_CAMERA_PATH, "rb") as f:
-                        st.image(f.read(), use_container_width=True)
-                else:
-                    st.info("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
-                st_autorefresh(interval=2000, key="auto_retry_cam")
-        else:
-            st_autorefresh(interval=20000, key="local_camera_refresh")
-            if os.path.exists(LOCAL_CAMERA_PATH):
-                mtime = datetime.fromtimestamp(os.path.getmtime(LOCAL_CAMERA_PATH))
-                age = (datetime.now() - mtime).total_seconds()
-                if age <= 90:
-                    st.success(f"🟢 آخر لقطة قبل {int(age)} ثانية ({mtime.strftime('%H:%M:%S')})")
-                elif age <= 300:
-                    st.warning(f"🟡 آخر لقطة قبل {int(age//60)} دقيقة")
-                else:
-                    st.error(f"🔴 آخر لقطة قبل {int(age//60)} دقيقة — تأكد من تشغيل `camera_capture.py`")
-
-                with open(LOCAL_CAMERA_PATH, "rb") as f:
-                    img_bytes = f.read()
-                
-                st.image(img_bytes, use_container_width=True)
-                
-                st.caption(f"🕐 {mtime.strftime('%Y-%m-%d %H:%M:%S')} — {len(img_bytes)//1024} KB")
-            else:
-                st.warning("⏳ لم يتم العثور على `live_camera.jpg` بعد.")
-    else:
-        # ☁️ السحابة
-        st_autorefresh(interval=20000, key="camera_refresh")
-        
-        GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-        GITHUB_API_URL = f"https://api.github.com/repos/nasserab965-art/ajdabiya-control-system/contents/live_camera.jpg"
-        
-        if not GITHUB_TOKEN:
-            st.error("❌ لم يتم العثور على GITHUB_TOKEN في إعدادات Streamlit Cloud.")
-        else:
-            try:
-                headers = {
-                    "Authorization": f"token {GITHUB_TOKEN}", 
-                    "Cache-Control": "no-cache"
-                }
-                response = requests.get(GITHUB_API_URL, headers=headers, timeout=10)
-                
-                if response.status_code == 200:
-                    file_data = response.json()
-                    content_b64 = file_data.get("content")
-                    if content_b64:
-                        img_bytes = base64.b64decode(content_b64)
-                        img = Image.open(BytesIO(img_bytes))
-                        st.image(img, use_container_width=True)
-                        st.info("⏱️ يتم تحديث هذه الصورة تلقائياً كل 20 ثانية.")
-                    else:
-                        st.warning("⚠️ الصورة موجودة لكن لا تحتوي على بيانات.")
-                else:
-                    st.warning(f"⚠️ فشل جلب الصورة. كود الخطأ: {response.status_code}")
-            except Exception as e:
-                st.error(f"❌ حدث خطأ: {e}")
-
-st.markdown("---")
-st.markdown("## 📊 الفاقد فى كميات المياه بخزان اجدابيا= الداخل للخزان - (الخارج من الخزان + الزيادة فى المخزون +البخر)")
-col1, col2, col3 = st.columns([1, 2, 1])
-with col3:
-    if st.button("🏠 العودة للرئيسية", width="stretch", type="primary", key="back_bottom"):
-        st.switch_page("app_main.py")
+                st.caption(f"📊 عدد الصفوف: {len(table_df)}
