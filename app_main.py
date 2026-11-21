@@ -81,9 +81,16 @@ if not st.session_state.logged_in:
         """, unsafe_allow_html=True)
         
         pwd = st.text_input("🔑 الرقم السري", type="password", key="pwd_main")
-        if st.button("🚪 دخول", use_container_width=True, type="primary", key="login_main"):
-            if hash_password(pwd) == USER_PASSWORD_HASH:
+               if st.button("🚪 دخول", use_container_width=True, type="primary", key="login_main"):
+            # تشفير كلمة المرور التي أدخلها المستخدم
+            hashed_input = hash_password(pwd)
+            
+            # التحقق مما إذا كانت كلمة المرور موجودة في قاموس المستخدمين
+            if hashed_input in USERS:
+                # تسجيل الدخول بنجاح وحفظ بيانات المستخدم
                 st.session_state.logged_in = True
+                st.session_state.user_level = USERS[hashed_input]["level"]
+                st.session_state.user_name = USERS[hashed_input]["name"]
                 st.rerun()
             else:
                 st.error("❌ الرقم غير صحيح")
