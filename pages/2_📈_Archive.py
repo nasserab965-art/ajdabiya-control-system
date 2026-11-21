@@ -10,6 +10,15 @@ import plotly.graph_objects as go
 import time
 from datetime import datetime
 
+# حماية الصفحة
+if 'user_level' not in st.session_state or st.session_state.user_level == 0:
+    st.error("⛔ غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً.")
+    st.stop()
+
+# صلاحية الأرشيف (مثلاً: 1, 2, 4 فقط)
+if st.session_state.user_level not in [1, 2, 4]:
+    st.error("⛔ عذراً، حسابك لا يملك الصلاحية لعرض هذه الصفحة.")
+    st.stop()
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared import check_login, apply_common_css, back_to_home_button, load_table
 
