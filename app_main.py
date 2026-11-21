@@ -280,10 +280,10 @@ with col_left:
             st.switch_page("pages/2_📈_Archive.py")
 
     # المستوى 5 (زائر): يرى التقرير اليومي فقط
+        # المستوى 5 (زائر): يرى الرسومات (الخرائط) فقط
     elif level == 5:
-         if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
-            st.switch_page("pages/1_📋_Daily.py")
-
+         if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
+            st.switch_page("pages/3_🗺️_Maps.py")
     # زر الخروج يظهر للجميع
     if st.button("🚪  تسجيل الخروج", key="logout_main", use_container_width=True):
         st.session_state.logged_in = False
