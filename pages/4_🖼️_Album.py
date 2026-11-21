@@ -11,7 +11,7 @@ if 'user_level' not in st.session_state or st.session_state.user_level == 0:
     st.stop()
 
 # صلاحية الصور (مثلاً: 1, 2, 3 ,4)
-if st.session_state.user_level not in [1, 2, 3,4]:
+if st.session_state.user_level not in [1, 2, 3, 4]:
     st.error("⛔ عذراً، حسابك لا يملك الصلاحية لعرض هذه الصفحة.")
     st.stop()
 # ⚠️ يجب أن يكون هذا السطر في البداية وقبل أي استيراد آخر
