@@ -276,6 +276,8 @@ with col_left:
 
     # المستوى 4: يرى الأرشيف فقط
     elif level == 4:
+        if st.button("📋  التقرير اليومي + الكاميرات", key="go_daily", use_container_width=True):
+            st.switch_page("pages/1_📋_Daily.py")
         if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
             st.switch_page("pages/2_📈_Archive.py")
 
