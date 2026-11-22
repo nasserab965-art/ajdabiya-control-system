@@ -18,15 +18,20 @@ import base64
 import zipfile
 from datetime import datetime
 from openpyxl.utils import column_index_from_string
+
 # حماية الصفحة
 if 'user_level' not in st.session_state or st.session_state.user_level == 0:
     st.error("⛔ غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً.")
     st.stop()
 
-# صلاحية الخرائط(مثلاً: 1, 2, 3 ,4 ,5)
+# صلاحية الخرائط (الجميع مسموح له بالدخول، ولكن الزائر سيكون للعرض فقط)
 if st.session_state.user_level not in [1, 2, 3, 4, 5]:
     st.error("⛔ عذراً، حسابك لا يملك الصلاحية لعرض هذه الصفحة.")
     st.stop()
+
+# هل المستخدم الحالي زائر؟ (لتفعيل وضع العرض فقط)
+is_viewer_only = st.session_state.user_level == 5
+
 # استيراد الدوال المشتركة من ملف shared.py
 from shared import check_login, apply_common_css, back_to_home_button
 
@@ -213,7 +218,7 @@ def open_print_window(df, title, rows_per_column=30):
 # ═══════════════════════════════════════════════════════════
 # 📊 دالة إنشاء رسوم GMRALINES (الحل الجذري)
 # ═══════════════════════════════════════════════════════════
-def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_col=None):
+def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_col=None, view_only=False):
     if not PLOTLY_AVAILABLE:
         st.error("❌ مكتبة Plotly غير مثبتة. الرجاء تشغيل: pip install plotly")
         return
@@ -295,7 +300,30 @@ def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_c
         )
         fig.update_yaxes(showgrid=True, gridcolor='lightgray', tickfont=dict(size=12))
         
-        st.plotly_chart(fig, width="stretch")
+        # ═══════════════════════════════════════════════════════════
+        # 🌟 التعديل الجديد: إعدادات الرسم البياني بناءً على الصلاحية
+        # ═══════════════════════════════════════════════════════════
+        if view_only:
+            # إعدادات الزائر: إخفاء شريط الأدوات، منع التكبير، تثبيت الرسم
+            chart_config = {
+                'displayModeBar': False,  # إخفاء شريط الأدوات بالكامل
+                'staticPlot': True        # يجعل الرسم ثابتاً (لا تكبير، لا تحريك، لا إخفاء للخطوط)
+            }
+            # إجبار الأسطورة على البقاء ثابتة
+            fig.update_layout(
+                showlegend=True,
+                legend_itemclick=False, 
+                legend_itemdoubleclick=False
+            )
+        else:
+            # إعدادات المدير والفنيين: تفاعل كامل
+            chart_config = {
+                'displayModeBar': True,
+                'scrollZoom': True,
+                'staticPlot': False
+            }
+
+        st.plotly_chart(fig, use_container_width=True, config=chart_config)
         
         with st.expander("📋 عرض البيانات"):
             display_df = df_clean[['X_Axis'] + [y_col]].rename(columns={'X_Axis': 'الموقع'}).reset_index(drop=True)
@@ -717,6 +745,7 @@ else:
                     chart_id=f"gmr_chart_{line_key}",
                     color=chart_cfg['color'],
                     sort_col=chart_cfg['sort_col'],
+                    view_only=is_viewer_only # <--- تمرير متغير الصلاحية هنا
                 )
             elif df_gmr is None:
                 st.warning("⚠️ لا توجد بيانات GMRALINES")
@@ -773,6 +802,4 @@ with col2:
     if st.button("🖼️ الذهاب إلى معرض الصور", width="stretch", type="primary", key="go_to_album"):
         st.switch_page("pages/4_🖼️_Album.py")
 
-st.markdown("---")
-# ═══════════════════════════════════════════════════════════
-# 🖼️ زر الانتقال ل
+st.markdown("---")زر الانتقال ل
