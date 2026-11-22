@@ -1,6 +1,3 @@
-"""
-🗺️ الخطوط والمحطات
-"""
 import sys
 import os
 
@@ -19,7 +16,9 @@ import zipfile
 from datetime import datetime
 from openpyxl.utils import column_index_from_string
 
-# حماية الصفحة
+# ═══════════════════════════════════════════════════════════
+# 🛡️ حماية الصفحة
+# ═══════════════════════════════════════════════════════════
 if 'user_level' not in st.session_state or st.session_state.user_level == 0:
     st.error("⛔ غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً.")
     st.stop()
@@ -64,27 +63,20 @@ st.set_page_config(page_title="الخطوط والمحطات", page_icon="🗺�
 apply_common_css()
 st.markdown("""
 <style>
-    /* تكبير أرقام المحاور (X و Y) */
     .js-plotly-plot .plotly .xtick text,
     .js-plotly-plot .plotly .ytick text {
         font-size: 18px !important;
         font-weight: bold !important;
     }
-    
-    /* تكبير عناوين المحاور */
     .js-plotly-plot .plotly .xaxis-title text,
     .js-plotly-plot .plotly .yaxis-title text {
         font-size: 20px !important;
         font-weight: bold !important;
     }
-    
-    /* تكبير نصوص مفاتيح الرسم (Legend) */
     .js-plotly-plot .plotly .legendtext {
         font-size: 18px !important;
         font-weight: bold !important;
     }
-    
-    /* تكبير شريط الأدوات العلوي (الزوم والتكبير والتحميل) */
     .js-plotly-plot .plotly .modebar-btn {
         transform: scale(1.5) !important;
         margin: 5px !important;
@@ -216,7 +208,7 @@ def open_print_window(df, title, rows_per_column=30):
     ''', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════
-# 📊 دالة إنشاء رسوم GMRALINES (الحل الجذري)
+# 📊 دالة إنشاء رسوم GMRALINES
 # ═══════════════════════════════════════════════════════════
 def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_col=None, view_only=False):
     if not PLOTLY_AVAILABLE:
@@ -227,26 +219,19 @@ def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_c
     st.markdown(f"<h4 style='margin: 5px 0;'>📊 {title}</h4>", unsafe_allow_html=True)
     
     try:
-        # ═══════════════════════════════════════════════════════════
-        # 🌟 الحل: قراءة الأعمدة حسب الترتيب (Index) بدلاً من الاسم
-        # ═══════════════════════════════════════════════════════════
         try:
-            # تحويل الحروف (A, B, C...) إلى أرقام (0, 1, 2...)
             x_idx = [column_index_from_string(c) - 1 for c in x_cols]
             y_idx = column_index_from_string(y_col) - 1
             
-            # التأكد من أن الملف يحتوي على العدد الكافي من الأعمدة
             if len(df.columns) <= max(x_idx + [y_idx]):
                 st.warning(f"⚠️ الملف لا يحتوي على عدد كافٍ من الأعمدة. (الملف يحتوي على {len(df.columns)} عمود فقط).")
                 return
                 
-            # استخراج البيانات بناءً على الأرقام
             df_clean = pd.DataFrame()
             for i, idx in enumerate(x_idx):
                 df_clean[f'X_{i}'] = df.iloc[:, idx]
             df_clean['Y_Val'] = df.iloc[:, y_idx]
             
-            # تحديث المتغيرات لتتوافق مع الأسماء الجديدة
             x_cols = [f'X_{i}' for i in range(len(x_idx))]
             y_col = 'Y_Val'
 
@@ -300,23 +285,17 @@ def create_gmr_chart(df, x_cols, y_col, title, chart_id, color='#667eea', sort_c
         )
         fig.update_yaxes(showgrid=True, gridcolor='lightgray', tickfont=dict(size=12))
         
-        # ═══════════════════════════════════════════════════════════
-        # 🌟 التعديل الجديد: إعدادات الرسم البياني بناءً على الصلاحية
-        # ═══════════════════════════════════════════════════════════
         if view_only:
-            # إعدادات الزائر: إخفاء شريط الأدوات، منع التكبير، تثبيت الرسم
             chart_config = {
-                'displayModeBar': False,  # إخفاء شريط الأدوات بالكامل
-                'staticPlot': True        # يجعل الرسم ثابتاً (لا تكبير، لا تحريك، لا إخفاء للخطوط)
+                'displayModeBar': False,
+                'staticPlot': True
             }
-            # إجبار الأسطورة على البقاء ثابتة
             fig.update_layout(
                 showlegend=True,
                 legend_itemclick=False, 
                 legend_itemdoubleclick=False
             )
         else:
-            # إعدادات المدير والفنيين: تفاعل كامل
             chart_config = {
                 'displayModeBar': True,
                 'scrollZoom': True,
@@ -745,7 +724,7 @@ else:
                     chart_id=f"gmr_chart_{line_key}",
                     color=chart_cfg['color'],
                     sort_col=chart_cfg['sort_col'],
-                    view_only=is_viewer_only # <--- تمرير متغير الصلاحية هنا
+                    view_only=is_viewer_only
                 )
             elif df_gmr is None:
                 st.warning("⚠️ لا توجد بيانات GMRALINES")
@@ -764,11 +743,10 @@ locations = {
     "خزان بنغازى النهائى": (31.729474, 20.266646),
     "حقل آبار السرير": (27.591483, 21.601081),
     "حقل آبار تازربو": (25.553332, 21.606476),
-    "زر جديد (مثال)": (30.000000, 20.000000), # <--- أضف الإحداثيات الحقيقية هنا
+    "زر جديد (مثال)": (30.000000, 20.000000), 
 }
 
 locations_list = list(locations.items())
-# جعلنا الأعمدة 4 بدلاً من 3 لكي تصغر الأزرار وتترتب بشكل أفضل
 cols_per_row = 4 
 
 for i in range(0, len(locations_list), cols_per_row):
@@ -802,4 +780,4 @@ with col2:
     if st.button("🖼️ الذهاب إلى معرض الصور", width="stretch", type="primary", key="go_to_album"):
         st.switch_page("pages/4_🖼️_Album.py")
 
-st.markdown("---")زر الانتقال ل
+st.markdown("---")
