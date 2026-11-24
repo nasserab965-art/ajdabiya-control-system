@@ -280,8 +280,12 @@ with col_left:
             st.switch_page("pages/1_📋_Daily.py")
         if st.button("📈  أرشيف القراءات 2025 + 2026", key="go_archive", use_container_width=True):
             st.switch_page("pages/2_📈_Archive.py")
+        if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
+            st.switch_page("pages/3_🗺️_Maps.py")
+        if st.button("🖼️  معرض الصور (الألبوم)", key="go_album", use_container_width=True):
+            st.switch_page("pages/4_🖼️_Album.py")
+    
 
-    # المستوى 5 (زائر): يرى التقرير اليومي فقط
         # المستوى 5 (زائر): يرى الرسومات (الخرائط) فقط
     elif level == 5:
          if st.button("🗺️  الخطوط والمحطات وخرائط Google", key="go_maps", use_container_width=True):
