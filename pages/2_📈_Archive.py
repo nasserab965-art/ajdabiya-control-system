@@ -395,131 +395,67 @@ for y in visible_years:
     )
 
 # ═══════════════════════════════════════════════════════════
-# 📋 جدول القراءات المختارة + تحميل CSV/Excel (أسفل الصفحة)
+# 📋 جدول القراءات المختارة (منفصل لكل عام) + تحميل CSV/Excel
 # ═══════════════════════════════════════════════════════════
 st.markdown("---")
 st.markdown("## 📋 جدول القراءات المختارة")
 
-table_mode = st.radio(
-    "طريقة العرض:",
-    ["جدول مدمج (مقارنة الأعوام جنبًا إلى جنب)", "جدول منفصل لكل عام"],
-    horizontal=True,
-    key="table_mode"
-)
+export_sheets = {}
+any_table = False
 
-if table_mode.startswith("جدول مدمج"):
-    merged = None
-    for y in visible_years:
-        df = years_data[y]
-        cols_present = [c for c in y_cols if c in df.columns]
-        if not cols_present:
-            continue
-        x_vals = df[x_axis] if x_axis in df.columns else df.index
-        temp = df[cols_present].copy()
-        temp.insert(0, final_x_title, x_vals)
-        temp = temp.rename(columns={c: f"{c} ({y})" for c in cols_present})
+for y in visible_years:
+    df = years_data[y]
+    cols_present = [c for c in y_cols if c in df.columns]
+    if not cols_present:
+        continue
+
+    if x_axis in df.columns:
+        show_df = df[[x_axis] + cols_present].copy()
+    else:
+        show_df = df[cols_present].copy()
         
-        if merged is None:
-            merged = temp
-        else:
-            merged = pd.merge(merged, temp, on=final_x_title, how="outer")
+    show_df = show_df.dropna(how="all", subset=cols_present)
 
-    if merged is not None and not merged.empty:
-        merged = merged.sort_values(final_x_title).reset_index(drop=True)
-        merged = format_date_column(merged, final_x_title)  # إزالة الساعة من التاريخ
+    if show_df.empty:
+        continue
+        
+    show_df = format_date_column(show_df, x_axis)  # إزالة الساعة من التاريخ
 
-        st.dataframe(
-            merged,
+    any_table = True
+    export_sheets[str(y)] = show_df
+
+    st.markdown(f"### 🔵 {y} — {len(show_df)} صف")
+    st.dataframe(
+        show_df,
+        use_container_width=True,
+        height=min(400, 40 + 35 * len(show_df)),
+        hide_index=True
+    )
+
+if any_table:
+    # أزرار التحميل
+    dl_col1, dl_col2, _ = st.columns([1, 1, 2])
+    with dl_col1:
+        first_year = list(export_sheets.keys())[0]
+        st.download_button(
+            f"⬇️ تحميل CSV ({first_year})",
+            data=export_sheets[first_year].to_csv(index=False).encode("utf-8-sig"),
+            file_name=f"archive_{first_year}_{datetime.now():%Y%m%d_%H%M}.csv",
+            mime="text/csv",
             use_container_width=True,
-            height=min(600, 40 + 35 * len(merged)),
-            hide_index=True
+            key="dl_csv_separate"
         )
-        st.caption(
-            f"عدد الصفوف: {len(merged)} | الأعوام: {', '.join(map(str, visible_years))} "
-            f"| الأعمدة: {', '.join(y_cols)}"
+    with dl_col2:
+        st.download_button(
+            "⬇️ تحميل Excel (كل الأعوام)",
+            data=df_to_excel_bytes(export_sheets),
+            file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="dl_xlsx_separate"
         )
-
-        # أزرار التحميل
-        dl_col1, dl_col2, _ = st.columns([1, 1, 2])
-        with dl_col1:
-            st.download_button(
-                "⬇️ تحميل CSV",
-                data=merged.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="dl_csv_merged"
-            )
-        with dl_col2:
-            st.download_button(
-                "⬇️ تحميل Excel",
-                data=df_to_excel_bytes({f"Archive_{datetime.now():%Y%m%d}": merged}),
-                file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-                key="dl_xlsx_merged"
-            )
-    else:
-        st.info("لا توجد بيانات لعرضها في الجدول.")
-
 else:
-    # وضع "جدول منفصل لكل عام"
-    export_sheets = {}
-    any_table = False
-
-    for y in visible_years:
-        df = years_data[y]
-        cols_present = [c for c in y_cols if c in df.columns]
-        if not cols_present:
-            continue
-
-        if x_axis in df.columns:
-            show_df = df[[x_axis] + cols_present].copy()
-        else:
-            show_df = df[cols_present].copy()
-            
-        show_df = show_df.dropna(how="all", subset=cols_present)
-
-        if show_df.empty:
-            continue
-            
-        show_df = format_date_column(show_df, x_axis)  # إزالة الساعة من التاريخ
-
-        any_table = True
-        export_sheets[str(y)] = show_df
-
-        st.markdown(f"### 🔵 {y} — {len(show_df)} صف")
-        st.dataframe(
-            show_df,
-            use_container_width=True,
-            height=min(400, 40 + 35 * len(show_df)),
-            hide_index=True
-        )
-
-    if any_table:
-        # أزرار التحميل
-        dl_col1, dl_col2, _ = st.columns([1, 1, 2])
-        with dl_col1:
-            first_year = list(export_sheets.keys())[0]
-            st.download_button(
-                f"⬇️ تحميل CSV ({first_year})",
-                data=export_sheets[first_year].to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"archive_{first_year}_{datetime.now():%Y%m%d_%H%M}.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="dl_csv_separate"
-            )
-        with dl_col2:
-            st.download_button(
-                "⬇️ تحميل Excel (كل الأعوام)",
-                data=df_to_excel_bytes(export_sheets),
-                file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-                key="dl_xlsx_separate"
-            )
-    else:
-        st.info("لا توجد بيانات لعرضها في الجداول.")
+    st.info("لا توجد بيانات لعرضها في الجداول.")
 
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
