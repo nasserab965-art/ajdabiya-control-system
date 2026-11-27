@@ -4,11 +4,11 @@
 import streamlit as st
 import os
 import sys
-import io
 import pandas as pd
 import sqlite3
 import plotly.graph_objects as go
 import time
+import io
 from datetime import datetime
 
 # حماية الصفحة
@@ -119,6 +119,24 @@ def sync_all_excel_to_db():
     if not updated:
         return False, "⚠️ لم يتم العثور على بيانات صالحة (تأكد من وجود عمود 'اليوم' وتواريخ صحيحة)."
     return True, "✅ تم التحديث:\n" + "\n".join(updated)
+
+def df_to_excel_bytes(sheets: dict) -> bytes:
+    """تحويل قاموس {اسم_الورقة: DataFrame} إلى ملف Excel في الذاكرة."""
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        for sheet_name, sheet_df in sheets.items():
+            sheet_df.to_excel(writer, sheet_name=str(sheet_name)[:31], index=False)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+def format_date_column(df, col_name):
+    """تحويل العمود إلى تاريخ فقط بدون وقت إن كان datetime."""
+    if col_name in df.columns:
+        try:
+            df[col_name] = pd.to_datetime(df[col_name], errors="coerce").dt.date
+        except Exception:
+            pass
+    return df
 
 # ─────────────────────────────────────────────────────────────
 # الشريط الجانبي
@@ -375,6 +393,7 @@ for y in visible_years:
         key=f"chart_year_{y}",
         config={'displayModeBar': True, 'toImageButtonOptions': {'format': 'png', 'filename': f'Archive_{y}', 'scale': 2}}
     )
+
 # ═══════════════════════════════════════════════════════════
 # 📋 جدول القراءات المختارة + تحميل CSV/Excel (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
@@ -388,15 +407,6 @@ table_mode = st.radio(
     key="table_mode"
 )
 
-def df_to_excel_bytes(sheets: dict) -> bytes:
-    """تحويل قاموس {اسم_الورقة: DataFrame} إلى ملف Excel في الذاكرة."""
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        for sheet_name, sheet_df in sheets.items():
-            sheet_df.to_excel(writer, sheet_name=str(sheet_name)[:31], index=False)
-    buffer.seek(0)
-    return buffer.getvalue()
-
 if table_mode.startswith("جدول مدمج"):
     merged = None
     for y in visible_years:
@@ -408,6 +418,7 @@ if table_mode.startswith("جدول مدمج"):
         temp = df[cols_present].copy()
         temp.insert(0, final_x_title, x_vals)
         temp = temp.rename(columns={c: f"{c} ({y})" for c in cols_present})
+        
         if merged is None:
             merged = temp
         else:
@@ -415,6 +426,8 @@ if table_mode.startswith("جدول مدمج"):
 
     if merged is not None and not merged.empty:
         merged = merged.sort_values(final_x_title).reset_index(drop=True)
+        merged = format_date_column(merged, final_x_title)  # إزالة الساعة من التاريخ
+
         st.dataframe(
             merged,
             use_container_width=True,
@@ -426,7 +439,7 @@ if table_mode.startswith("جدول مدمج"):
             f"| الأعمدة: {', '.join(y_cols)}"
         )
 
-        # ── أزرار التحميل ──
+        # أزرار التحميل
         dl_col1, dl_col2, _ = st.columns([1, 1, 2])
         with dl_col1:
             st.download_button(
@@ -464,10 +477,13 @@ else:
             show_df = df[[x_axis] + cols_present].copy()
         else:
             show_df = df[cols_present].copy()
+            
         show_df = show_df.dropna(how="all", subset=cols_present)
 
         if show_df.empty:
             continue
+            
+        show_df = format_date_column(show_df, x_axis)  # إزالة الساعة من التاريخ
 
         any_table = True
         export_sheets[str(y)] = show_df
@@ -481,10 +497,9 @@ else:
         )
 
     if any_table:
-        # ── أزرار التحميل (كل عام في ورقة منفصلة) ──
+        # أزرار التحميل
         dl_col1, dl_col2, _ = st.columns([1, 1, 2])
         with dl_col1:
-            # CSV للعام الأول فقط (CSV لا يدعم أوراق متعددة)
             first_year = list(export_sheets.keys())[0]
             st.download_button(
                 f"⬇️ تحميل CSV ({first_year})",
@@ -505,6 +520,7 @@ else:
             )
     else:
         st.info("لا توجد بيانات لعرضها في الجداول.")
+
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
