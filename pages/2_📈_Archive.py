@@ -4,6 +4,7 @@
 import streamlit as st
 import os
 import sys
+import io
 import pandas as pd
 import sqlite3
 import plotly.graph_objects as go
@@ -375,7 +376,7 @@ for y in visible_years:
         config={'displayModeBar': True, 'toImageButtonOptions': {'format': 'png', 'filename': f'Archive_{y}', 'scale': 2}}
     )
 # ═══════════════════════════════════════════════════════════
-# 📋 جدول القراءات المختارة (أسفل الصفحة)
+# 📋 جدول القراءات المختارة + تحميل CSV/Excel (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
 st.markdown("---")
 st.markdown("## 📋 جدول القراءات المختارة")
@@ -386,6 +387,15 @@ table_mode = st.radio(
     horizontal=True,
     key="table_mode"
 )
+
+def df_to_excel_bytes(sheets: dict) -> bytes:
+    """تحويل قاموس {اسم_الورقة: DataFrame} إلى ملف Excel في الذاكرة."""
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        for sheet_name, sheet_df in sheets.items():
+            sheet_df.to_excel(writer, sheet_name=str(sheet_name)[:31], index=False)
+    buffer.seek(0)
+    return buffer.getvalue()
 
 if table_mode.startswith("جدول مدمج"):
     merged = None
@@ -398,12 +408,12 @@ if table_mode.startswith("جدول مدمج"):
         temp = df[cols_present].copy()
         temp.insert(0, final_x_title, x_vals)
         temp = temp.rename(columns={c: f"{c} ({y})" for c in cols_present})
-        # دمج حسب العمود المحوري
         if merged is None:
             merged = temp
         else:
             merged = pd.merge(merged, temp, on=final_x_title, how="outer")
-    if merged is not None:
+
+    if merged is not None and not merged.empty:
         merged = merged.sort_values(final_x_title).reset_index(drop=True)
         st.dataframe(
             merged,
@@ -411,18 +421,57 @@ if table_mode.startswith("جدول مدمج"):
             height=min(600, 40 + 35 * len(merged)),
             hide_index=True
         )
-        st.caption(f"عدد الصفوف: {len(merged)} | الأعوام: {', '.join(map(str, visible_years))} | الأعمدة: {', '.join(y_cols)}")
+        st.caption(
+            f"عدد الصفوف: {len(merged)} | الأعوام: {', '.join(map(str, visible_years))} "
+            f"| الأعمدة: {', '.join(y_cols)}"
+        )
+
+        # ── أزرار التحميل ──
+        dl_col1, dl_col2, _ = st.columns([1, 1, 2])
+        with dl_col1:
+            st.download_button(
+                "⬇️ تحميل CSV",
+                data=merged.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="dl_csv_merged"
+            )
+        with dl_col2:
+            st.download_button(
+                "⬇️ تحميل Excel",
+                data=df_to_excel_bytes({f"Archive_{datetime.now():%Y%m%d}": merged}),
+                file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="dl_xlsx_merged"
+            )
     else:
         st.info("لا توجد بيانات لعرضها في الجدول.")
+
 else:
+    # وضع "جدول منفصل لكل عام"
+    export_sheets = {}
+    any_table = False
+
     for y in visible_years:
         df = years_data[y]
         cols_present = [c for c in y_cols if c in df.columns]
         if not cols_present:
             continue
-        x_vals = df[x_axis] if x_axis in df.columns else df.index
-        show_df = df[[x_axis] + cols_present].copy() if x_axis in df.columns else df[cols_present].copy()
+
+        if x_axis in df.columns:
+            show_df = df[[x_axis] + cols_present].copy()
+        else:
+            show_df = df[cols_present].copy()
         show_df = show_df.dropna(how="all", subset=cols_present)
+
+        if show_df.empty:
+            continue
+
+        any_table = True
+        export_sheets[str(y)] = show_df
+
         st.markdown(f"### 🔵 {y} — {len(show_df)} صف")
         st.dataframe(
             show_df,
@@ -430,6 +479,32 @@ else:
             height=min(400, 40 + 35 * len(show_df)),
             hide_index=True
         )
+
+    if any_table:
+        # ── أزرار التحميل (كل عام في ورقة منفصلة) ──
+        dl_col1, dl_col2, _ = st.columns([1, 1, 2])
+        with dl_col1:
+            # CSV للعام الأول فقط (CSV لا يدعم أوراق متعددة)
+            first_year = list(export_sheets.keys())[0]
+            st.download_button(
+                f"⬇️ تحميل CSV ({first_year})",
+                data=export_sheets[first_year].to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"archive_{first_year}_{datetime.now():%Y%m%d_%H%M}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="dl_csv_separate"
+            )
+        with dl_col2:
+            st.download_button(
+                "⬇️ تحميل Excel (كل الأعوام)",
+                data=df_to_excel_bytes(export_sheets),
+                file_name=f"archive_readings_{datetime.now():%Y%m%d_%H%M}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="dl_xlsx_separate"
+            )
+    else:
+        st.info("لا توجد بيانات لعرضها في الجداول.")
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
