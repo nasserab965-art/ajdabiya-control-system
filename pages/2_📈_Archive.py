@@ -374,7 +374,62 @@ for y in visible_years:
         key=f"chart_year_{y}",
         config={'displayModeBar': True, 'toImageButtonOptions': {'format': 'png', 'filename': f'Archive_{y}', 'scale': 2}}
     )
+# ═══════════════════════════════════════════════════════════
+# 📋 جدول القراءات المختارة (أسفل الصفحة)
+# ═══════════════════════════════════════════════════════════
+st.markdown("---")
+st.markdown("## 📋 جدول القراءات المختارة")
 
+table_mode = st.radio(
+    "طريقة العرض:",
+    ["جدول مدمج (مقارنة الأعوام جنبًا إلى جنب)", "جدول منفصل لكل عام"],
+    horizontal=True,
+    key="table_mode"
+)
+
+if table_mode.startswith("جدول مدمج"):
+    merged = None
+    for y in visible_years:
+        df = years_data[y]
+        cols_present = [c for c in y_cols if c in df.columns]
+        if not cols_present:
+            continue
+        x_vals = df[x_axis] if x_axis in df.columns else df.index
+        temp = df[cols_present].copy()
+        temp.insert(0, final_x_title, x_vals)
+        temp = temp.rename(columns={c: f"{c} ({y})" for c in cols_present})
+        # دمج حسب العمود المحوري
+        if merged is None:
+            merged = temp
+        else:
+            merged = pd.merge(merged, temp, on=final_x_title, how="outer")
+    if merged is not None:
+        merged = merged.sort_values(final_x_title).reset_index(drop=True)
+        st.dataframe(
+            merged,
+            use_container_width=True,
+            height=min(600, 40 + 35 * len(merged)),
+            hide_index=True
+        )
+        st.caption(f"عدد الصفوف: {len(merged)} | الأعوام: {', '.join(map(str, visible_years))} | الأعمدة: {', '.join(y_cols)}")
+    else:
+        st.info("لا توجد بيانات لعرضها في الجدول.")
+else:
+    for y in visible_years:
+        df = years_data[y]
+        cols_present = [c for c in y_cols if c in df.columns]
+        if not cols_present:
+            continue
+        x_vals = df[x_axis] if x_axis in df.columns else df.index
+        show_df = df[[x_axis] + cols_present].copy() if x_axis in df.columns else df[cols_present].copy()
+        show_df = show_df.dropna(how="all", subset=cols_present)
+        st.markdown(f"### 🔵 {y} — {len(show_df)} صف")
+        st.dataframe(
+            show_df,
+            use_container_width=True,
+            height=min(400, 40 + 35 * len(show_df)),
+            hide_index=True
+        )
 # ═══════════════════════════════════════════════════════════
 # 🏠 زر العودة للرئيسية (أسفل الصفحة)
 # ═══════════════════════════════════════════════════════════
